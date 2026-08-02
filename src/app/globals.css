@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Analog Minimalist — design tokens
+   Mapped 1:1 from designsystem.md frontmatter.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Palettes.
+
+   Light is the design system's own values, verbatim. Dark is derived
+   from them: the neutral hues are kept and the tonal ladder inverted,
+   so it reads as the same camera body photographed in a dark room —
+   not as a different product.
+
+   Two things deliberately do NOT invert:
+     --color-print    the film paper stays paper-white; a "dark print"
+                      is not a thing.
+     --color-darkroom the processing screen stays dark in both themes,
+                      because the darkroom metaphor depends on it.
+   ------------------------------------------------------------ */
+
+:root,
+:root[data-theme="light"] {
+  --surface: #fcf9f8;
+  --surface-dim: #dcd9d9;
+  --surface-bright: #fcf9f8;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f6f3f2;
+  --surface-container: #f0eded;
+  --surface-container-high: #eae7e7;
+  --surface-container-highest: #e4e2e1;
+  --on-surface: #1b1c1c;
+  --on-surface-variant: #444748;
+  --inverse-surface: #303030;
+  --inverse-on-surface: #f3f0ef;
+  --outline: #747878;
+  --outline-variant: #c4c7c7;
+  --primary: #000000;
+  --on-primary: #ffffff;
+  --secondary: #5e5f5c;
+  --secondary-container: #e0e0dc;
+  --error: #ba1a1a;
+
+  --print: #ffffff;
+  --grain-opacity: 0.04;
+  --dot-color: #c4c7c7;
+}
+
+:root[data-theme="dark"] {
+  --surface: #131414;
+  --surface-dim: #131414;
+  --surface-bright: #393939;
+  --surface-container-lowest: #0e0e0e;
+  --surface-container-low: #1b1c1c;
+  --surface-container: #1f2020;
+  --surface-container-high: #2a2a2a;
+  --surface-container-highest: #353535;
+  --on-surface: #e4e2e1;
+  --on-surface-variant: #c4c7c7;
+  --inverse-surface: #e4e2e1;
+  --inverse-on-surface: #303030;
+  --outline: #8e9192;
+  --outline-variant: #444748;
+  --primary: #e4e2e1;
+  --on-primary: #1b1c1c;
+  --secondary: #c7c7c3;
+  --secondary-container: #454744;
+  --error: #ffb4ab;
+
+  --print: #ffffff;
+  --grain-opacity: 0.06;
+  --dot-color: #333637;
+}
+
+@theme inline {
+  /* --- Colors --- */
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-error: var(--error);
+  --color-background: var(--surface);
+  --color-on-background: var(--on-surface);
+
+  /* Non-inverting */
+  --color-print: var(--print);
+  --color-darkroom: #232323;
+  --color-on-darkroom: #f3f0ef;
+
+  /* Warm Film accent — the "magic AI moment" / REC indicator */
+  --color-film-amber: #b97416;
+  --color-film-amber-bright: #ffb869;
+
+  /* --- Fonts --- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-courier-prime), ui-monospace, monospace;
+
+  /* --- Radii --- */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* --- Elevation: soft ambient, never hard drop shadows --- */
+  --shadow-film: 0px 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-film-lifted:
+    0px 12px 32px rgba(0, 0, 0, 0.12), 0px 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-inset-glass: inset 0px 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+/* ============================================================
+   Typography roles (designsystem.md `typography`)
+   ============================================================ */
+
+@utility type-viewfinder-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility type-headline-lg {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+}
+
+@utility type-body-md {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+@utility type-timestamp-sm {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: -0.02em;
+}
+
+@utility type-timestamp-lg {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+@utility type-button-text {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   Texture — "The Canvas" must never look like a flat hex code.
+   Grain at 3-5% opacity per designsystem.md Elevation & Depth.
+   ============================================================ */
+
+@utility grain {
+  position: relative;
+  isolation: isolate;
+}
+
+@utility grain-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Dot-grid paper, as seen in the mockup background */
+@utility paper {
+  background-color: var(--color-surface);
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ============================================================
+   Motion
+   ============================================================ */
+
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@utility animate-rec {
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes shutter-flash {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-shutter {
+  animation: shutter-flash 420ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
