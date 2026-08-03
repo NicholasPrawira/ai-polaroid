@@ -4,10 +4,9 @@
  * Target look: an unedited early-2000s disposable camera snapshot — indoor,
  * flash-dominant, coarse 35mm grain.
  *
- * GUARDS are load-bearing, not style. They stop the model recomposing the shot
- * or drawing its own border. The app renders the frame itself (PolaroidFrame /
- * composeExport), so a model-drawn frame would shift between generations and
- * break caption/date-stamp placement.
+ * GUARDS are load-bearing, not style. They stop the model recomposing the shot,
+ * altering faces, or drawing a border — the photo is displayed and saved
+ * full-bleed, so anything the model draws around it becomes part of the image.
  */
 const LOOK = `Transform the image into an authentic early-2000s disposable camera photograph. The look should feel like it was taken with a cheap point-and-shoot camera using a powerful built-in flash indoors at night. The flash should be the dominant light source, making the subject noticeably brighter while the background remains significantly darker. Use authentic coarse 35mm film grain, random dust, tiny scratches, and subtle film scanning imperfections—not digital noise. Apply warm yellow highlights, slightly olive-green shadows, deep blacks, moderate contrast, and preserve natural skin texture without beauty smoothing. Reduce digital sharpness slightly, add subtle plastic lens softness, mild chromatic aberration, a faint vignette, and soft flash bloom. The final image should feel raw, candid, nostalgic, imperfect, and unmistakably analog—not like a modern digital photo with a vintage filter.`;
 
