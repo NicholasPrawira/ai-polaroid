@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { PolaroidFrame } from "./PolaroidFrame";
+import { PhotoCard } from "./PhotoCard";
 import {
   DownloadIcon,
   PrimaryButton,
@@ -11,7 +11,7 @@ import {
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
 import { Shot } from "@/lib/types";
-import { composeExport, filenameFor, saveBlob } from "@/lib/export";
+import { prepareDownload, saveBlob } from "@/lib/export";
 
 export function ResultScreen({
   shot,
@@ -20,30 +20,29 @@ export function ResultScreen({
   shot: Shot;
   onNewPhoto: () => void;
 }) {
-  // Composed up front, not on click. Safari revokes the user-activation flag
+  // Prepared up front, not on click. Safari revokes the user-activation flag
   // across an await, which blocks both the share sheet and the download — so
   // the save handler has to be able to run synchronously.
-  // Keyed by shot id so switching prints invalidates the previous result
-  // without needing a synchronous reset inside the effect.
+  // Keyed by shot id so switching photos invalidates the previous result.
   const [entry, setEntry] = useState<{
     id: string;
-    blob?: Blob;
+    file?: { blob: Blob; filename: string };
     error?: string;
   } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    composeExport(shot)
-      .then((blob) => {
-        if (!cancelled) setEntry({ id: shot.id, blob });
+    prepareDownload(shot)
+      .then((file) => {
+        if (!cancelled) setEntry({ id: shot.id, file });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         setEntry({
           id: shot.id,
           error:
-            err instanceof Error ? err.message : "Could not prepare the print.",
+            err instanceof Error ? err.message : "Could not prepare the photo.",
         });
       });
 
@@ -53,29 +52,31 @@ export function ResultScreen({
   }, [shot]);
 
   const ready = entry?.id === shot.id ? entry : null;
-  const blob = ready?.blob ?? null;
+  const file = ready?.file ?? null;
   const error = ready?.error ?? null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <ThemeToggle />
-        <h1 className="text-center text-[17px] font-semibold">AI Polaroid</h1>
+        <h1 className="text-center text-[15px] font-semibold">
+          AI Disposable Camera
+        </h1>
         <span />
       </header>
 
       <div className="flex min-h-0 flex-1 items-center justify-center px-8">
-        <div className="w-full max-w-[300px]">
-          <PolaroidFrame lifted>
+        <div className="w-full max-w-[320px]">
+          <PhotoCard lifted>
             <Image
               src={shot.imageUrl}
-              alt="Developed polaroid"
+              alt="Developed photo"
               fill
               unoptimized
-              sizes="300px"
+              sizes="320px"
               className="object-cover"
             />
-          </PolaroidFrame>
+          </PhotoCard>
         </div>
       </div>
 
@@ -86,11 +87,11 @@ export function ResultScreen({
           </p>
         )}
         <PrimaryButton
-          onClick={() => blob && saveBlob(blob, filenameFor(shot))}
-          disabled={!blob}
+          onClick={() => file && saveBlob(file.blob, file.filename)}
+          disabled={!file}
           icon={<DownloadIcon />}
         >
-          {blob ? "Save to Gallery" : "Preparing…"}
+          {file ? "Save to Gallery" : "Preparing…"}
         </PrimaryButton>
         <SecondaryButton onClick={onNewPhoto} icon={<RefreshIcon />}>
           New Photo

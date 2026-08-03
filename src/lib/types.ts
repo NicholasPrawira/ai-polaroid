@@ -1,6 +1,6 @@
 export type Shot = {
   id: string;
-  /** Data URL of the AI-developed photo (film emulation only, no frame). */
+  /** Data URL of the AI-developed photo. */
   imageUrl: string;
   createdAt: number;
 };

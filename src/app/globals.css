@@ -13,9 +13,7 @@
    so it reads as the same camera body photographed in a dark room —
    not as a different product.
 
-   Two things deliberately do NOT invert:
-     --color-print    the film paper stays paper-white; a "dark print"
-                      is not a thing.
+   One thing deliberately does NOT invert:
      --color-darkroom the processing screen stays dark in both themes,
                       because the darkroom metaphor depends on it.
    ------------------------------------------------------------ */
@@ -42,7 +40,6 @@
   --secondary-container: #e0e0dc;
   --error: #ba1a1a;
 
-  --print: #ffffff;
   --grain-opacity: 0.04;
   --dot-color: #c4c7c7;
 }
@@ -68,7 +65,6 @@
   --secondary-container: #454744;
   --error: #ffb4ab;
 
-  --print: #ffffff;
   --grain-opacity: 0.06;
   --dot-color: #333637;
 }
@@ -98,7 +94,6 @@
   --color-on-background: var(--on-surface);
 
   /* Non-inverting */
-  --color-print: var(--print);
   --color-darkroom: #232323;
   --color-on-darkroom: #f3f0ef;
 

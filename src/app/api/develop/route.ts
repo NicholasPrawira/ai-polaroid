@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "X-Title": "AI Polaroid",
+        "X-Title": "AI Disposable Camera",
       },
       body: JSON.stringify({
         model,

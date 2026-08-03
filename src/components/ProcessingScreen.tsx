@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { PolaroidFrame } from "./PolaroidFrame";
+import { PhotoCard } from "./PhotoCard";
 import { CloseIcon, HourglassIcon } from "./Chrome";
 import { formatCountdown } from "@/lib/useDevelop";
 
 /**
- * The darkroom. Inverted theme on purpose — the only dark screen in the app,
- * bracketed by two light ones, so the wait reads as a deliberate stage.
+ * The darkroom. The only dark screen in the app, bracketed by two light ones,
+ * so the wait reads as a deliberate stage rather than dead time.
  */
 export function ProcessingScreen({
   source,
@@ -42,28 +42,9 @@ export function ProcessingScreen({
         </span>
       </header>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center px-10">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10">
         <div className="w-full max-w-[300px]">
-          <PolaroidFrame
-            dark
-            lifted
-            footer={
-              error ? (
-                <p className="type-timestamp-sm px-4 text-center text-[var(--color-error)]">
-                  {error}
-                </p>
-              ) : (
-                <div className="text-center">
-                  <p className="type-headline-lg text-[var(--color-on-surface)]">
-                    Finishing…
-                  </p>
-                  <p className="type-timestamp-sm mt-1 text-[var(--color-on-surface-variant)] opacity-70">
-                    EST. {formatCountdown(progress)}
-                  </p>
-                </div>
-              )
-            }
-          >
+          <PhotoCard lifted>
             <Image
               src={source}
               alt=""
@@ -80,7 +61,22 @@ export function ProcessingScreen({
               className="absolute inset-0 bg-black"
               style={{ opacity: (1 - clarity) * 0.75 }}
             />
-          </PolaroidFrame>
+          </PhotoCard>
+        </div>
+
+        <div className="mt-8 text-center">
+          {error ? (
+            <p className="type-timestamp-sm text-[var(--color-error)]">
+              {error}
+            </p>
+          ) : (
+            <>
+              <p className="type-headline-lg">Developing…</p>
+              <p className="type-timestamp-sm mt-1.5 opacity-55">
+                EST. {formatCountdown(progress)}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -96,7 +92,7 @@ export function ProcessingScreen({
           </button>
         ) : (
           <p className="type-viewfinder-label mx-auto max-w-[34ch] text-center leading-4 opacity-45">
-            Please wait while the AI mimics chemical layers. Do not close the
+            Please wait while the AI develops the film. Do not close the
             application.
           </p>
         )}

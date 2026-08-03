@@ -8,7 +8,7 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Stands in for the felt-tip / date-back imprint on the film border.
+// Mechanical/technical readouts: the develop countdown and HUD-style figures.
 const courierPrime = Courier_Prime({
   variable: "--font-courier-prime",
   subsets: ["latin"],
@@ -16,8 +16,8 @@ const courierPrime = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: "AI Polaroid",
-  description: "Capture a photo, let the AI mimic the chemical layers.",
+  title: "AI Disposable Camera",
+  description: "Capture a photo, let the AI develop it like a disposable camera.",
 };
 
 export const viewport: Viewport = {

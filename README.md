@@ -1,7 +1,7 @@
-# AI Polaroid
+# AI Disposable Camera
 
 Capture a photo in the browser, send it through an image-to-image model, and let it
-develop into a Polaroid print.
+develop into an early-2000s disposable camera snapshot.
 
 See [aipolaroid-prd.md](./aipolaroid-prd.md) for product scope and
 [designsystem.md](./designsystem.md) for the visual language.
@@ -32,15 +32,15 @@ Image-capable models are only listed when you filter for them —
   an `input_references` entry, returns the developed photo as a data URL.
 - `src/lib/useDevelop.ts` — runs the develop animation **alongside** the request.
   Progress eases to 85%, waits there, then completes once the image lands.
-- `src/lib/export.ts` — burns the frame, caption and date stamp into a PNG on
-  canvas so the download matches what's on screen.
+- `src/lib/export.ts` — hands the photo over as a Blob. On touch-only devices it
+  goes through the Web Share API so iOS can "Save Image"; elsewhere it downloads.
 
-The AI only does film emulation. The white frame is drawn by the app, which is
-what keeps the caption and date stamp in a fixed position across generations.
+There is no frame. The saved file is the model's output untouched — no border,
+no caption, no date stamp, and no canvas re-encode.
 
 ## Notes
 
 - **Nothing is stored.** The gallery lives in React state for the session only —
-  refreshing clears it. Saving a print is the only way to keep it.
+  refreshing clears it. Saving a photo is the only way to keep it.
 - **The viewfinder HUD is decorative.** `getUserMedia` exposes no shutter speed,
   aperture, or ISO. Those readings are hardcoded; static numbers are correct.

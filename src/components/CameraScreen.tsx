@@ -93,7 +93,9 @@ export function CameraScreen({
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_auto] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <ThemeToggle />
-        <h1 className="text-center text-[17px] font-semibold">AI Polaroid</h1>
+        <h1 className="text-center text-[15px] font-semibold">
+          AI Disposable Camera
+        </h1>
         <div className="flex items-center gap-1">
           <ActionChip
             label="Self-timer"
@@ -166,20 +168,20 @@ export function CameraScreen({
         <div className="justify-self-start">
           {lastShot ? (
             <div
-              className="h-14 w-11 rounded-sm bg-white p-1 pb-2.5"
+              className="h-12 w-12 overflow-hidden rounded-md"
               style={{ boxShadow: "var(--shadow-film)" }}
             >
               <Image
                 src={lastShot.imageUrl}
                 alt=""
-                width={44}
-                height={44}
+                width={48}
+                height={48}
                 unoptimized
                 className="h-full w-full object-cover"
               />
             </div>
           ) : (
-            <div className="h-14 w-11 rounded-sm border border-dashed border-[var(--color-outline-variant)]" />
+            <div className="h-12 w-12 rounded-md border border-dashed border-[var(--color-outline-variant)]" />
           )}
         </div>
 

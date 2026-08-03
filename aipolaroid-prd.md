@@ -1,4 +1,4 @@
-# PRD: AI Polaroid
+# PRD: AI Disposable Camera
 
 **Author:** Nicho
 **Status:** Draft
@@ -8,15 +8,15 @@
 
 ## 1. Overview
 
-AI Polaroid adalah web/app sederhana yang memungkinkan user membuka kamera langsung dari browser/app, capture foto, lalu foto tersebut diproses AI untuk di-generate/animasikan menjadi foto bergaya polaroid — lengkap dengan tampilan bingkai khas, tekstur film, dan transisi/animasi "muncul perlahan" seperti polaroid asli yang baru dikocok.
+AI Disposable Camera adalah web/app sederhana yang memungkinkan user membuka kamera langsung dari browser/app, capture foto, lalu foto tersebut diproses AI untuk terlihat seperti hasil kamera disposable era awal 2000-an — flash langsung yang keras, grain 35mm kasar, debu dan goresan, color cast hijau-kuning — dengan animasi "develop" bertahap selama AI memproses.
 
 Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena keinginan iseng untuk eksplorasi dan showcase kemampuan AI generation + camera capture dalam satu produk kecil yang fun.
 
 ## 2. Goals
 
 - User bisa capture foto langsung dari kamera device (browser/app), tanpa perlu upload manual.
-- Hasil foto diproses AI untuk terlihat seperti polaroid asli (warna, grain, vignette, bingkai putih khas).
-- Ada animasi generate/reveal — foto muncul bertahap seperti polaroid yang baru keluar dari kamera, bukan langsung jadi.
+- Hasil foto diproses AI untuk terlihat seperti cetakan kamera disposable (flash keras, grain kasar, vignette, imperfeksi film).
+- Ada animasi generate/reveal — foto muncul bertahap seperti film yang sedang dicuci, bukan langsung jadi.
 - Pengalaman terasa "magical". Catatan: AI image generation butuh ~10–40 detik, jadi **real-time bukan target yang realistis**. Yang dikejar bukan "cepat", tapi "menunggunya menyenangkan" — waktu tunggu dijadikan bagian dari pengalaman (animasi develop + countdown jujur), bukan disembunyikan di balik spinner.
 
 ## 3. Non-Goals (Out of Scope untuk v1)
@@ -27,7 +27,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Tidak buat versi cetak fisik (integrasi printer) di v1.
 - Tidak ada penyimpanan foto permanen — gallery hilang saat refresh (lihat §5.5).
 - Tidak ada judul foto maupun timestamp di bingkai (lihat §5.4).
-- Tidak ada multi-style frame — satu style polaroid klasik untuk v1.
+- Tidak ada multi-style filter — satu look disposable untuk v1.
 
 ## 4. Target User
 
@@ -52,12 +52,11 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Countdown besar tampil di tengah viewfinder; tap shutter saat countdown berjalan akan membatalkannya.
 - Sesuai spec Action Chip di design system ("toggling flash, timer, or lens").
 
-### 5.2 AI Generation — Polaroid Effect
-- Foto hasil capture dikirim ke model image-to-image lewat OpenRouter Image API **hanya untuk film emulation**: tekstur & warna khas film polaroid (grain, light leak, warm tone, sedikit vignette, lifted blacks).
-- **Bingkai putih polaroid TIDAK digenerate AI — digambar oleh app sendiri** (komponen `PolaroidFrame` di layar, dan canvas composite saat export).
-  - Alasan: kalau bingkai digambar AI, proporsi dan ketebalannya bergeser tiap generate, sehingga tiap cetakan terlihat beda-beda. Bingkai yang digambar app menjamin geometri identik di semua foto — di layar maupun di file export (sesuai §7 "satu style untuk v1").
-  - Prompt secara eksplisit melarang model menambah border, teks, atau watermark.
-- Foto capture dikirim sebagai `input_references` (base64 data URL) bersama prompt polaroid.
+### 5.2 AI Generation — Disposable Camera Effect
+- Foto hasil capture dikirim ke model image-to-image lewat OpenRouter Image API **hanya untuk film emulation**: flash frontal keras, grain 35mm kasar, debu & goresan, cast hijau-kuning, crushed blacks, vignette, softness lensa plastik.
+- **Tidak ada bingkai sama sekali.** Hasil capture ditampilkan sebagai foto dengan sudut membulat (komponen `PhotoCard`), bukan cetakan instant film. Kamera disposable menghasilkan cetakan foto biasa — tidak ada kertas putih untuk ditulisi.
+- Prompt secara eksplisit melarang model menambah border, teks, watermark, maupun date stamp.
+- Foto capture dikirim sebagai `input_references` (base64 data URL) bersama prompt disposable.
 - Model default: `x-ai/grok-imagine-image-quality` (Grok Imagine, `text+image->image`).
 - Nama model disimpan di environment variable (`OPENROUTER_IMAGE_MODEL`), supaya bisa ditukar/dibandingkan tanpa ubah kode.
 - Opsional: AI generate variasi kecil tiap kali (biar hasil tidak selalu identik/predictable, mirip randomness film asli).
@@ -71,15 +70,16 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Animasi dibuat pakai CSS (kemungkinan dibantu beberapa library animasi front-end untuk transisi yang lebih halus).
 
 ### 5.4 Output & Export
-- Setelah proses selesai, user bisa save/download hasil foto polaroid (format image, resolusi cukup untuk share ke social media).
-- **Bingkai polaroid dibiarkan polos — tanpa judul dan tanpa tanggal.** Border atas dan bawah kosong, seperti cetakan instant film yang belum ditulisi. Ini berlaku di layar hasil, gallery, maupun file hasil download.
+- Setelah proses selesai, user bisa save/download hasil fotonya (resolusi cukup untuk share ke social media).
+- **File yang di-download adalah foto itu sendiri** — tanpa bingkai, tanpa teks, tanpa tanggal. Tidak ada compositing di canvas, jadi output model tersimpan apa adanya tanpa re-encode.
+- Di perangkat touch-only (iOS), penyimpanan memakai Web Share API supaya user bisa "Save Image" ke Photos; di desktop memakai download biasa.
 - Prompt AI juga secara eksplisit melarang model membakar date stamp / angka ke dalam foto — kamera disposable era 2000-an biasanya mencetak tanggal oranye di pojok, dan itu tidak diinginkan di sini.
 
 ### 5.5 Gallery (session-only)
 - Tab gallery menampilkan foto-foto yang dibuat **selama sesi berjalan saja**, disimpan in-memory (React state).
 - **Foto tidak di-persist sama sekali** — refresh atau tutup tab = gallery kosong. Konsisten dengan §7 Storage: tidak ada server storage, dan foto tidak pernah masuk localStorage/IndexedDB.
 - Pengecualian yang bukan foto: preferensi light/dark mode disimpan di `localStorage` (§5.6). Ini setting UI, bukan data user.
-- Tampilan memakai komponen Film Stack dari design system (deck bertumpuk dengan rotasi ±2 derajat).
+- Tampilan memakai rotasi ringan ±2 derajat (semangat Film Stack dari design system), tapi tanpa bingkai kertas.
 - User perlu diberi tahu secara halus bahwa foto tidak tersimpan permanen — save/download adalah satu-satunya cara menyimpan.
 
 ### 5.6 Light & Dark Mode
@@ -87,8 +87,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Default mengikuti preferensi OS (`prefers-color-scheme`); begitu user memilih manual, pilihannya disimpan di `localStorage` dan menang atas OS.
 - Script inline dijalankan sebelum paint pertama supaya tidak ada kedip tema salah saat load.
 - Palet dark diturunkan dari token light: hue netral dipertahankan, tangga tonalnya dibalik.
-- **Dua hal sengaja tidak ikut berbalik:**
-  - Kertas film (`--color-print`) tetap putih — "cetakan gelap" bukan benda yang ada di dunia nyata.
+- **Satu hal sengaja tidak ikut berbalik:**
   - Layar processing (`--color-darkroom`) tetap gelap di kedua tema, karena metafora darkroom-nya bergantung pada itu.
 
 ## 6. User Flow
@@ -97,7 +96,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 2. User lihat live preview kamera → tekan tombol capture.
 3. Foto diambil → preview sebentar → user konfirmasi (pakai foto ini / retake).
 4. Foto dikirim ke proses AI generation di background **dan animasi reveal langsung mulai bersamaan**.
-5. Layar processing (tema gelap) menampilkan polaroid yang develop bertahap + countdown. User bisa Cancel.
+5. Layar processing (tema gelap) menampilkan foto yang develop bertahap + countdown. User bisa Cancel.
 6. Hasil AI datang → animasi diselesaikan → hasil akhir foto polaroid ditampilkan penuh.
 7. User bisa save/download atau capture ulang.
 8. Foto masuk ke gallery sesi (hilang kalau di-refresh).
@@ -107,7 +106,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - **Camera capture:** browser API (getUserMedia) untuk web, atau native camera API kalau dibuat sebagai app.
 - **AI processing:** model image-to-image lewat OpenRouter Image API (`input_references` + prompt) untuk transformasi foto capture jadi gaya polaroid.
 - **Animasi reveal:** dibuat pakai CSS (kemungkinan dibantu beberapa library animasi), **dijalankan bersamaan dengan request AI** dan ditahan di ~85% sampai hasil datang. Ini menggantikan pendekatan "jalankan setelah hasil diterima" yang sempat ditulis di draft awal.
-- **Frame:** bingkai putih klasik polaroid, satu style untuk v1.
+- **Frame:** tidak ada bingkai. Foto ditampilkan full-bleed dengan sudut membulat.
 - **Latency:** AI generation butuh ~10–40 detik. Loading state harus tetap immersive — animasi develop + countdown jujur, dengan opsi Cancel.
 - **Camera constraint:** `getUserMedia` hanya memberi video stream. Metadata kamera (shutter/aperture/ISO) tidak tersedia — lihat §5.1a, HUD sepenuhnya dekoratif.
 - **HTTPS:** `getUserMedia` hanya jalan di secure context. Di local pakai `localhost`; di production Vercel sudah HTTPS by default.
@@ -128,7 +127,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 ## 9. Success Metrics (untuk personal project)
 
 - Tool berhasil dipakai end-to-end tanpa bug besar (capture → generate → reveal → save).
-- Hasil foto polaroid terlihat estetik dan konsisten kualitasnya.
+- Hasil fotonya terlihat estetik dan konsisten kualitasnya.
 - Waktu proses (capture sampai hasil jadi) terasa cepat/nyaman, bukan lama menunggu.
 
 ## 10. Future Considerations
@@ -136,4 +135,4 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Multi-style frame/filter selection.
 - Fitur share langsung ke social media dari dalam app.
 - Kemungkinan dikembangkan jadi produk publik/kecil kalau responnya bagus.
-- Integrasi cetak fisik (printer polaroid mini) kalau mau dijadikan produk nyata.
+- Integrasi cetak fisik (printer foto mini) kalau mau dijadikan produk nyata.
