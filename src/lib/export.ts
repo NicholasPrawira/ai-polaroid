@@ -74,7 +74,14 @@ export function filenameFor(shot: Shot): string {
 export function saveBlob(blob: Blob, filename: string): void {
   const file = new File([blob], filename, { type: "image/png" });
 
-  if (navigator.canShare?.({ files: [file] })) {
+  // Share only where a plain download can't land a file the user can find.
+  // macOS Safari supports the Share API too, but there a share sheet is the
+  // wrong answer — "Save" should put a file in Downloads.
+  const touchOnly =
+    navigator.maxTouchPoints > 0 &&
+    !window.matchMedia("(pointer: fine)").matches;
+
+  if (touchOnly && navigator.canShare?.({ files: [file] })) {
     // Fire and forget; a user dismissing the sheet rejects, which is not an error.
     void navigator.share({ files: [file] }).catch(() => {});
     return;
