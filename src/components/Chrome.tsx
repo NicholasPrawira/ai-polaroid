@@ -88,16 +88,19 @@ export function PrimaryButton({
   children,
   onClick,
   icon,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   icon?: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="type-button-text flex w-full items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-4 text-[var(--color-on-primary)] transition-transform active:scale-[0.98]"
+      disabled={disabled}
+      className="type-button-text flex w-full items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 py-4 text-[var(--color-on-primary)] transition-transform active:scale-[0.98] disabled:opacity-50"
     >
       {icon}
       {children}

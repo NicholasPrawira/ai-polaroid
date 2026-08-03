@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { PolaroidFrame } from "./PolaroidFrame";
 import {
@@ -11,7 +11,7 @@ import {
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
 import { Shot } from "@/lib/types";
-import { downloadShot } from "@/lib/export";
+import { composeExport, filenameFor, saveBlob } from "@/lib/export";
 
 export function ResultScreen({
   shot,
@@ -20,20 +20,41 @@ export function ResultScreen({
   shot: Shot;
   onNewPhoto: () => void;
 }) {
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // Composed up front, not on click. Safari revokes the user-activation flag
+  // across an await, which blocks both the share sheet and the download — so
+  // the save handler has to be able to run synchronously.
+  // Keyed by shot id so switching prints invalidates the previous result
+  // without needing a synchronous reset inside the effect.
+  const [entry, setEntry] = useState<{
+    id: string;
+    blob?: Blob;
+    error?: string;
+  } | null>(null);
 
-  async function handleSave() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await downloadShot(shot);
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Could not save.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  useEffect(() => {
+    let cancelled = false;
+
+    composeExport(shot)
+      .then((blob) => {
+        if (!cancelled) setEntry({ id: shot.id, blob });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setEntry({
+          id: shot.id,
+          error:
+            err instanceof Error ? err.message : "Could not prepare the print.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shot]);
+
+  const ready = entry?.id === shot.id ? entry : null;
+  const blob = ready?.blob ?? null;
+  const error = ready?.error ?? null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -59,13 +80,17 @@ export function ResultScreen({
       </div>
 
       <div className="space-y-3 px-6 pb-5">
-        {saveError && (
+        {error && (
           <p className="type-timestamp-sm text-center text-[var(--color-error)]">
-            {saveError}
+            {error}
           </p>
         )}
-        <PrimaryButton onClick={handleSave} icon={<DownloadIcon />}>
-          {saving ? "Saving…" : "Save to Gallery"}
+        <PrimaryButton
+          onClick={() => blob && saveBlob(blob, filenameFor(shot))}
+          disabled={!blob}
+          icon={<DownloadIcon />}
+        >
+          {blob ? "Save to Gallery" : "Preparing…"}
         </PrimaryButton>
         <SecondaryButton onClick={onNewPhoto} icon={<RefreshIcon />}>
           New Photo
