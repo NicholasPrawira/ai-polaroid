@@ -1,20 +1,21 @@
 "use client";
 
+import { Shot } from "./types";
+
 /**
  * The saved file is the developed photograph itself — no frame, no border, no
- * text. Nothing is composited, so the pipeline's output is preserved bit-for-bit
+ * text. Nothing is composited, so the model's output is preserved bit-for-bit
  * rather than being re-encoded through a canvas.
  */
 export async function prepareDownload(
-  imageUrl: string,
-  basename: string,
+  shot: Shot,
 ): Promise<{ blob: Blob; filename: string }> {
-  const res = await fetch(imageUrl);
+  const res = await fetch(shot.imageUrl);
   if (!res.ok) throw new Error("Could not read the developed photo.");
   const blob = await res.blob();
 
   const ext = blob.type === "image/jpeg" ? "jpg" : "png";
-  return { blob, filename: `disposable-${basename}.${ext}` };
+  return { blob, filename: `disposable-${shot.id}.${ext}` };
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import {
@@ -11,72 +11,36 @@ import {
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
 import { Shot } from "@/lib/types";
-import { DevelopMode, developPhoto } from "@/lib/develop";
 import { prepareDownload, saveBlob } from "@/lib/export";
-
-const LABELS: Record<DevelopMode, string> = { instant: "fast", ai: "ai" };
 
 export function ResultScreen({
   shot,
   onNewPhoto,
-  onVariant,
 }: {
   shot: Shot;
   onNewPhoto: () => void;
-  /** Caches a newly produced variant back onto the shot. */
-  onVariant: (id: string, mode: DevelopMode, image: string) => void;
 }) {
-  // Remounted per shot via a key prop, so no reset effect is needed.
-  const [view, setView] = useState<DevelopMode>(shot.mode);
-  const [buildError, setBuildError] = useState<string | null>(null);
-
-  const image = shot.variants[view];
-  // Guards against launching the same develop twice across re-renders.
-  const inFlightRef = useRef<string | null>(null);
-
-  // Produce the other variant on demand, from the same raw capture.
-  useEffect(() => {
-    if (image) return;
-    const key = `${shot.id}:${view}`;
-    if (inFlightRef.current === key) return;
-    inFlightRef.current = key;
-
-    let cancelled = false;
-
-    developPhoto(shot.sourceUrl, view)
-      .then((result) => {
-        if (!cancelled) onVariant(shot.id, view, result);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setBuildError(err instanceof Error ? err.message : "Develop failed.");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [view, image, shot.id, shot.sourceUrl, onVariant]);
-
-  /* --- Download prep, keyed by what's on screen --- */
+  // Prepared up front, not on click. Safari revokes the user-activation flag
+  // across an await, which blocks both the share sheet and the download — so
+  // the save handler has to be able to run synchronously.
+  // Keyed by shot id so switching photos invalidates the previous result.
   const [entry, setEntry] = useState<{
-    key: string;
+    id: string;
     file?: { blob: Blob; filename: string };
     error?: string;
   } | null>(null);
 
   useEffect(() => {
-    if (!image) return;
     let cancelled = false;
-    const key = `${shot.id}:${view}`;
 
-    prepareDownload(image, `${shot.id}-${view}`)
+    prepareDownload(shot)
       .then((file) => {
-        if (!cancelled) setEntry({ key, file });
+        if (!cancelled) setEntry({ id: shot.id, file });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         setEntry({
-          key,
+          id: shot.id,
           error:
             err instanceof Error ? err.message : "Could not prepare the photo.",
         });
@@ -85,11 +49,11 @@ export function ResultScreen({
     return () => {
       cancelled = true;
     };
-  }, [image, shot.id, view]);
+  }, [shot]);
 
-  const ready = entry?.key === `${shot.id}:${view}` ? entry : null;
+  const ready = entry?.id === shot.id ? entry : null;
   const file = ready?.file ?? null;
-  const saveError = ready?.error ?? null;
+  const error = ready?.error ?? null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -101,64 +65,25 @@ export function ResultScreen({
         <span />
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center px-8">
         <div className="w-full max-w-[320px]">
           <PhotoCard lifted>
-            {image ? (
-              <Image
-                src={image}
-                alt={`Developed photo, ${LABELS[view]} pipeline`}
-                fill
-                unoptimized
-                sizes="320px"
-                className="object-cover"
-              />
-            ) : (
-              <div className="grid h-full place-items-center">
-                <p className="type-viewfinder-label text-white/60">
-                  {buildError
-                    ? "failed"
-                    : view === "ai"
-                      ? "asking the ai…"
-                      : "developing…"}
-                </p>
-              </div>
-            )}
+            <Image
+              src={shot.imageUrl}
+              alt="Developed photo"
+              fill
+              unoptimized
+              sizes="320px"
+              className="object-cover"
+            />
           </PhotoCard>
         </div>
-
-        {/* Same capture, two pipelines — the only fair way to compare them. */}
-        <div className="mt-5 flex items-center gap-1 rounded-md bg-[var(--color-surface-container)] p-1">
-          {(["instant", "ai"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setView(m)}
-              aria-pressed={view === m}
-              className={`type-viewfinder-label rounded-sm px-4 py-2 transition-colors ${
-                view === m
-                  ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                  : "text-[var(--color-on-surface-variant)]"
-              }`}
-            >
-              {LABELS[m]}
-              {m === "ai" && !shot.variants.ai && " ·"}
-            </button>
-          ))}
-        </div>
-
-        <p className="type-viewfinder-label mt-2 h-4 text-center text-[var(--color-on-surface-variant)] opacity-60">
-          {buildError ??
-            (view === "ai" && !shot.variants.ai
-              ? "tapping ai costs one generation"
-              : "same shot, both pipelines")}
-        </p>
       </div>
 
-      <div className="space-y-3 px-6 pt-4 pb-5">
-        {saveError && (
+      <div className="space-y-3 px-6 pb-5">
+        {error && (
           <p className="type-timestamp-sm text-center text-[var(--color-error)]">
-            {saveError}
+            {error}
           </p>
         )}
         <PrimaryButton

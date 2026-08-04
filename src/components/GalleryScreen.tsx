@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import { ThemeToggle } from "./ThemeToggle";
-import { Shot, displayUrl } from "@/lib/types";
+import { Shot } from "@/lib/types";
 
 /** Deterministic tilt so a photo doesn't jump around between renders. */
 function tilt(id: string): number {
@@ -51,7 +51,7 @@ export function GalleryScreen({
               >
                 <PhotoCard radius="md">
                   <Image
-                    src={displayUrl(shot)}
+                    src={shot.imageUrl}
                     alt="Photo"
                     fill
                     unoptimized

@@ -6,7 +6,6 @@ import { useCamera } from "@/lib/useCamera";
 import { ViewfinderHud } from "./ViewfinderHud";
 import {
   ActionChip,
-  BoltIcon,
   FlashIcon,
   FlipIcon,
   IconButton,
@@ -14,8 +13,7 @@ import {
   TimerIcon,
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
-import { Shot, displayUrl } from "@/lib/types";
-import { DevelopMode } from "@/lib/useDevelop";
+import { Shot } from "@/lib/types";
 
 /** Self-timer positions, cycled by tapping the chip. */
 const TIMER_STEPS = [0, 3, 10] as const;
@@ -23,13 +21,9 @@ const TIMER_STEPS = [0, 3, 10] as const;
 export function CameraScreen({
   onCapture,
   lastShot,
-  mode,
-  onModeChange,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
-  mode: DevelopMode;
-  onModeChange: (mode: DevelopMode) => void;
 }) {
   const { videoRef, facing, flip, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
@@ -103,14 +97,6 @@ export function CameraScreen({
           AI Disposable Camera
         </h1>
         <div className="flex items-center gap-1">
-          <ActionChip
-            label="Develop mode"
-            value={mode === "instant" ? "fast" : "ai"}
-            active={mode === "ai"}
-            onClick={() => onModeChange(mode === "instant" ? "ai" : "instant")}
-          >
-            <BoltIcon />
-          </ActionChip>
           <ActionChip
             label="Self-timer"
             value={delay === 0 ? "off" : `${delay}s`}
@@ -186,7 +172,7 @@ export function CameraScreen({
               style={{ boxShadow: "var(--shadow-film)" }}
             >
               <Image
-                src={displayUrl(lastShot)}
+                src={lastShot.imageUrl}
                 alt=""
                 width={48}
                 height={48}

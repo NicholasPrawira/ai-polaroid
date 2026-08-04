@@ -30,9 +30,6 @@ Image-capable models are only listed when you filter for them —
 - `src/lib/useCamera.ts` — opens the stream, centre-crops a 1024px square JPEG.
 - `src/app/api/develop/route.ts` — posts the capture to OpenRouter's Image API as
   an `input_references` entry, returns the developed photo as a data URL.
-- `src/lib/filmShader.ts` — the default look: a single-pass WebGL2 shader doing
-  grade, grain, bloom, aberration, vignette, dust and flash falloff on-device.
-  Instant, free, works offline, and cannot alter a face.
 - `src/lib/useDevelop.ts` — runs the develop animation **alongside** the request.
   Progress eases to 85%, waits there, then completes once the image lands.
 - `src/lib/export.ts` — hands the photo over as a Blob. On touch-only devices it
@@ -40,21 +37,6 @@ Image-capable models are only listed when you filter for them —
 
 There is no frame. The saved file is the model's output untouched — no border,
 no caption, no date stamp, and no canvas re-encode.
-
-## Two develop modes
-
-The header chip switches between them.
-
-| | Fast (default) | AI |
-| --- | --- | --- |
-| Where | on-device shader | OpenRouter |
-| Speed | instant | ~7s |
-| Cost | free | ~$0.01/photo |
-| Offline | yes | no |
-| Can alter faces | no | yes |
-
-The shader cannot relight a scene — it has no idea what is subject and what is
-background. That is the only thing the AI path buys, and the reason to keep it.
 
 ## Notes
 
