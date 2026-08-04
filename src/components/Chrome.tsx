@@ -194,6 +194,46 @@ export const RefreshIcon = () => (
   </svg>
 );
 
+export const ChevronRightIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" {...s} className="opacity-40">
+    <path d="M9.5 5L16 12l-6.5 7" />
+  </svg>
+);
+
+export const KeyIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <circle cx="8" cy="12" r="3.5" />
+    <path d="M11.5 12H21m-3 0v3m-3-3v2.5" />
+  </svg>
+);
+
+export const CreditCardIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <rect x="3" y="6" width="18" height="12" rx="1.5" />
+    <path d="M3 10h18M6.5 14.5h3" />
+  </svg>
+);
+
+export const ShieldIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M12 3l7 3v5.5c0 4-3 7.5-7 8.5-4-1-7-4.5-7-8.5V6z" />
+  </svg>
+);
+
+export const LogOutIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M14 6.5V5a1.5 1.5 0 00-1.5-1.5h-7A1.5 1.5 0 004 5v14a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0014 19v-1.5" />
+    <path d="M10 12h11m-3-3l3 3-3 3" />
+  </svg>
+);
+
+export const SparkIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
+    <path d="M18 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" />
+  </svg>
+);
+
 export const UserIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
     <circle cx="12" cy="8.5" r="3.75" />

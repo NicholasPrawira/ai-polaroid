@@ -95,12 +95,20 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Tampilan memakai rotasi ringan ±2 derajat (semangat Film Stack dari design system), tapi tanpa bingkai kertas.
 - User perlu diberi tahu secara halus bahwa foto tidak tersimpan permanen — save/download adalah satu-satunya cara menyimpan.
 
-### 5.7 Account (placeholder)
-- Ikon user di kanan atas setiap layar, membuka sheet berisi: status "Not signed in",
-  jumlah foto dan folder di sesi ini, serta toggle light/dark mode.
-- **Belum ada sistem akun.** Sheet ini sengaja menyatakan itu apa adanya, bukan
-  menampilkan tombol sign-in yang tidak menuju ke mana-mana.
-- Setting dipindah ke sini supaya header kamera cuma berisi kontrol kamera.
+### 5.7 Account (kerangka UI, belum berfungsi)
+- Ikon user di kanan atas setiap layar membuka sheet Account.
+- Isinya: status "Not signed in" + tombol Sign in, jumlah foto & folder di sesi ini,
+  kartu Upgrade to Pro, lalu daftar menu — Change password, Billing & invoices,
+  Privacy & data, Sign out — dan toggle light/dark mode.
+- Sub-layar **Plans**: dua tier (Free / Pro) beserta daftar fiturnya.
+- **Tidak ada satu pun yang berfungsi.** Belum ada auth, belum ada payment provider.
+  Angka harga dan batas kuota adalah placeholder, bukan penawaran.
+- **Setiap item yang belum jalan menjelaskan dirinya saat ditekan** — bukan diam
+  saja. Tombol mati yang tidak merespons terbaca sebagai bug; tombol yang bilang
+  "fitur ini menunggu sistem akun" terbaca sebagai rencana.
+- Menu ini dibuat lebih dulu sebagai kerangka untuk merancang bentuk produk.
+  Isinya baru bisa disambungkan setelah P0 di ROADMAP.md dikerjakan (auth + storage).
+- Setting ditaruh di sini supaya header kamera cuma berisi kontrol kamera.
 
 ### 5.6 Light & Dark Mode
 - App mendukung light dan dark mode, di-toggle dari sheet Account (§5.7).
