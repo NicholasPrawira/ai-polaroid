@@ -46,7 +46,7 @@ export const SCENES: Scene[] = [
   { src: "/scene-graduation.jpg" },
   { src: "/scene-hangout.jpg" },
   { src: "/scene-concert.jpg", zoom: 1.25, focusX: 0.74, focusY: 0.62 },
-  { src: "/scene-first-date.png" },
+  { src: "/scene-first-date.jpg", zoom: 1.15, focusY: 0.6 },
   // Cropped in and biased left, onto the near group rather than the whole room.
   { src: "/scene-everyday.jpg", zoom: 1.15, focusX: 0.4, focusY: 0.86 },
 ];
