@@ -275,11 +275,38 @@ body {
   /* Where the highlight band sits. Capped in rem as well as vh: on a tall
      screen a bare 38vh becomes 500-odd pixels of empty space above the words. */
   --band: min(34vh, 15rem);
-  --dim: color-mix(in oklch, var(--color-on-surface), transparent 78%);
+  --dim: color-mix(in oklch, var(--color-on-surface), transparent 62%);
+}
+
+/* The ASCII canvas is fixed behind the hero. The dark panel below scrolls up
+   over it on its own layer, which is what ends the effect. */
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Legibility scrim. The ASCII field is dense by design, and the hero type has
+   to sit on top of it — without this wash the dimmed words disappear entirely.
+   Heaviest through the middle, where the word list lives. */
+.landing-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-surface) 45%, transparent) 0%,
+    color-mix(in srgb, var(--color-surface) 78%, transparent) 22%,
+    color-mix(in srgb, var(--color-surface) 78%, transparent) 82%,
+    color-mix(in srgb, var(--color-surface) 45%, transparent) 100%
+  );
 }
 
 .landing-hero {
   position: sticky;
+  z-index: 1;
   /* Pull the block up by one line per extra word, so the list scrolls
      through the band instead of leaving with the page. */
   top: calc((var(--count) - 1) * -1lh);

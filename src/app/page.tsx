@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AsciiBackground } from "@/components/AsciiBackground";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -42,6 +43,10 @@ const STEPS = [
 export default function Landing() {
   return (
     <div className="landing" style={{ ["--count" as string]: WORDS.length }}>
+      <div className="landing-bg" aria-hidden="true">
+        <AsciiBackground />
+      </div>
+
       <header className="landing-hero">
         <div className="landing-hero-inner">
           <h1>
