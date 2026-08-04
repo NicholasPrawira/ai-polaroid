@@ -10,16 +10,26 @@ import {
   SecondaryButton,
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
-import { Shot } from "@/lib/types";
+import { FolderPicker } from "./FolderPicker";
+import { FolderIcon } from "./Chrome";
+import { Folder, Shot } from "@/lib/types";
 import { prepareDownload, saveBlob } from "@/lib/export";
 
 export function ResultScreen({
   shot,
+  folders,
   onNewPhoto,
+  onFile,
+  onCreateFolder,
 }: {
   shot: Shot;
+  folders: Folder[];
   onNewPhoto: () => void;
+  onFile: (shotId: string, folderId: string | null) => void;
+  onCreateFolder: (name: string) => string;
 }) {
+  const [picking, setPicking] = useState(false);
+  const folder = folders.find((f) => f.id === shot.folderId) ?? null;
   // Prepared up front, not on click. Safari revokes the user-activation flag
   // across an await, which blocks both the share sheet and the download — so
   // the save handler has to be able to run synchronously.
@@ -65,7 +75,7 @@ export function ResultScreen({
         <span />
       </header>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center px-8">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8">
         <div className="w-full max-w-[320px]">
           <PhotoCard lifted>
             <Image
@@ -78,6 +88,17 @@ export function ResultScreen({
             />
           </PhotoCard>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          className="type-viewfinder-label mt-5 flex items-center gap-2 rounded-md border border-[var(--color-outline-variant)] px-3.5 py-2.5 text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container)]"
+        >
+          <FolderIcon />
+          <span className="max-w-[16ch] truncate">
+            {folder ? folder.name : "add to folder"}
+          </span>
+        </button>
       </div>
 
       <div className="space-y-3 px-6 pb-5">
@@ -97,6 +118,16 @@ export function ResultScreen({
           New Photo
         </SecondaryButton>
       </div>
+
+      {picking && (
+        <FolderPicker
+          folders={folders}
+          current={shot.folderId}
+          onPick={(folderId) => onFile(shot.id, folderId)}
+          onCreate={onCreateFolder}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </div>
   );
 }

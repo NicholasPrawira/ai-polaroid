@@ -6,7 +6,7 @@ import { ProcessingScreen } from "@/components/ProcessingScreen";
 import { ResultScreen } from "@/components/ResultScreen";
 import { GalleryScreen } from "@/components/GalleryScreen";
 import { TabBar } from "@/components/Chrome";
-import { Screen, Shot } from "@/lib/types";
+import { Folder, Screen, Shot } from "@/lib/types";
 import { useDevelop } from "@/lib/useDevelop";
 
 export default function Home() {
@@ -14,6 +14,7 @@ export default function Home() {
   // Session-only, in memory. Refreshing clears everything, by design (PRD 5.5).
   const [shots, setShots] = useState<Shot[]>([]);
   const [current, setCurrent] = useState<Shot | null>(null);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [source, setSource] = useState<string | null>(null);
 
   // Promote a finished develop into a print.
@@ -22,6 +23,7 @@ export default function Home() {
       id: Math.random().toString(36).slice(2, 10),
       imageUrl: image,
       createdAt: Date.now(),
+      folderId: null,
     };
     setShots((prev) => [shot, ...prev]);
     setCurrent(shot);
@@ -48,6 +50,22 @@ export default function Home() {
   const handleRetry = useCallback(() => {
     if (source) start(source);
   }, [source, start]);
+
+  const handleCreateFolder = useCallback((name: string) => {
+    const folder: Folder = {
+      id: Math.random().toString(36).slice(2, 10),
+      name,
+      createdAt: Date.now(),
+    };
+    setFolders((prev) => [...prev, folder]);
+    return folder.id;
+  }, []);
+
+  const handleFile = useCallback((shotId: string, folderId: string | null) => {
+    const patch = (s: Shot): Shot => (s.id === shotId ? { ...s, folderId } : s);
+    setShots((prev) => prev.map(patch));
+    setCurrent((prev) => (prev && prev.id === shotId ? patch(prev) : prev));
+  }, []);
 
   const handleNewPhoto = useCallback(() => {
     setSource(null);
@@ -77,12 +95,19 @@ export default function Home() {
         )}
 
         {screen === "result" && current && (
-          <ResultScreen shot={current} onNewPhoto={handleNewPhoto} />
+          <ResultScreen
+            shot={current}
+            folders={folders}
+            onNewPhoto={handleNewPhoto}
+            onFile={handleFile}
+            onCreateFolder={handleCreateFolder}
+          />
         )}
 
         {screen === "gallery" && (
           <GalleryScreen
             shots={shots}
+            folders={folders}
             onSelect={(shot) => {
               setCurrent(shot);
               setScreen("result");

@@ -76,6 +76,15 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Prompt AI juga secara eksplisit melarang model membakar date stamp / angka ke dalam foto — kamera disposable era 2000-an biasanya mencetak tanggal oranye di pojok, dan itu tidak diinginkan di sini.
 
 ### 5.5 Gallery (session-only)
+- Dua tab: **All Photos** dan **Folders**.
+- **All Photos** — semua foto sesi ini, dikelompokkan per hari (`Today`, `Yesterday`,
+  lalu tanggalnya) sehingga terbaca sebagai riwayat, bukan tumpukan datar.
+- **Folders** — daftar folder buatan user (mis. "Japan 2026", "Nico Wedding")
+  dengan cover foto terbaru dan jumlah isinya. Tap untuk membuka isinya.
+  Foto yang belum difolder muncul di bagian "unsorted" di bawah daftar.
+- Folder dibuat dari sheet "Add to folder" di layar hasil — tidak ada layar
+  manajemen folder terpisah, supaya alurnya tetap satu arah.
+- Satu foto berada di paling banyak satu folder (`folderId`, `null` = unsorted).
 - Tab gallery menampilkan foto-foto yang dibuat **selama sesi berjalan saja**, disimpan in-memory (React state).
 - **Foto tidak di-persist sama sekali** — refresh atau tutup tab = gallery kosong. Konsisten dengan §7 Storage: tidak ada server storage, dan foto tidak pernah masuk localStorage/IndexedDB.
 - Pengecualian yang bukan foto: preferensi light/dark mode disimpan di `localStorage` (§5.6). Ini setting UI, bukan data user.

@@ -194,6 +194,30 @@ export const RefreshIcon = () => (
   </svg>
 );
 
+export const FolderIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M3 7.5A1.5 1.5 0 014.5 6h4L10 8h9.5A1.5 1.5 0 0121 9.5v8a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.5z" />
+  </svg>
+);
+
+export const PlusIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+export const CheckIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" {...s}>
+    <path d="M5 12.5l4.5 4.5L19 7" />
+  </svg>
+);
+
+export const ChevronLeftIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M14.5 5L8 12l6.5 7" />
+  </svg>
+);
+
 export const CloseIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" {...s}>
     <path d="M6 6l12 12M18 6L6 18" />
