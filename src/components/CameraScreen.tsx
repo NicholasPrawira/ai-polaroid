@@ -14,7 +14,7 @@ import {
   TimerIcon,
 } from "./Chrome";
 import { ThemeToggle } from "./ThemeToggle";
-import { Shot } from "@/lib/types";
+import { Shot, displayUrl } from "@/lib/types";
 import { DevelopMode } from "@/lib/useDevelop";
 
 /** Self-timer positions, cycled by tapping the chip. */
@@ -186,7 +186,7 @@ export function CameraScreen({
               style={{ boxShadow: "var(--shadow-film)" }}
             >
               <Image
-                src={lastShot.imageUrl}
+                src={displayUrl(lastShot)}
                 alt=""
                 width={48}
                 height={48}

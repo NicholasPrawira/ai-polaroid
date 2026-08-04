@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyFilmLook } from "./filmShader";
+import { DevelopMode, developPhoto } from "./develop";
 
-export type DevelopMode = "instant" | "ai";
+export type { DevelopMode };
 
 /**
  * How long a develop is expected to take. The mockup showed 00:45, but measured
@@ -101,7 +101,7 @@ export function useDevelop(onComplete: (image: string) => void) {
 
       const work: Promise<string> =
         mode === "instant"
-          ? applyFilmLook(imageDataUrl).then(async (image) => {
+          ? developPhoto(imageDataUrl, "instant").then(async (image) => {
               // The shader is done almost immediately; wait out the rest of the
               // animation so every instant develop feels the same length.
               const elapsed = performance.now() - startedAtRef.current;
@@ -111,18 +111,7 @@ export function useDevelop(onComplete: (image: string) => void) {
               }
               return image;
             })
-          : fetch("/api/develop", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ image: imageDataUrl }),
-              signal: controller.signal,
-            }).then(async (res) => {
-              const body = await res.json().catch(() => ({}));
-              if (!res.ok) {
-                throw new Error(body.error ?? `Develop failed (${res.status}).`);
-              }
-              return body.image as string;
-            });
+          : developPhoto(imageDataUrl, "ai", controller.signal);
 
       work
         .then((image) => {

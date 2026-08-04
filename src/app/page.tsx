@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CameraScreen } from "@/components/CameraScreen";
 import { ProcessingScreen } from "@/components/ProcessingScreen";
 import { ResultScreen } from "@/components/ResultScreen";
 import { GalleryScreen } from "@/components/GalleryScreen";
 import { TabBar } from "@/components/Chrome";
 import { Screen, Shot } from "@/lib/types";
+import { DevelopMode as Mode } from "@/lib/develop";
 import { DevelopMode, useDevelop } from "@/lib/useDevelop";
 import { isSupported } from "@/lib/filmShader";
 
@@ -16,6 +17,8 @@ export default function Home() {
   const [shots, setShots] = useState<Shot[]>([]);
   const [current, setCurrent] = useState<Shot | null>(null);
   const [source, setSource] = useState<string | null>(null);
+  // Read inside handleComplete, which must not depend on render-time state.
+  const sourceRef = useRef<string | null>(null);
   // Local shader by default: instant, free, offline, and it can't alter a face.
   // Falls back to the AI path where WebGL2 is missing.
   const [mode, setMode] = useState<DevelopMode>(() =>
@@ -23,22 +26,39 @@ export default function Home() {
   );
 
   // Promote a finished develop into a print.
-  const handleComplete = useCallback((image: string) => {
-    const shot: Shot = {
-      id: Math.random().toString(36).slice(2, 10),
-      imageUrl: image,
-      createdAt: Date.now(),
-    };
-    setShots((prev) => [shot, ...prev]);
-    setCurrent(shot);
-    setScreen("result");
-  }, []);
+  const handleComplete = useCallback(
+    (image: string) => {
+      const shot: Shot = {
+        id: Math.random().toString(36).slice(2, 10),
+        sourceUrl: sourceRef.current ?? image,
+        variants: { [mode]: image },
+        mode,
+        createdAt: Date.now(),
+      };
+      setShots((prev) => [shot, ...prev]);
+      setCurrent(shot);
+      setScreen("result");
+    },
+    [mode],
+  );
+
+  /** Caches a variant produced later from the result screen. */
+  const handleVariant = useCallback(
+    (id: string, m: Mode, image: string) => {
+      const patch = (s: Shot): Shot =>
+        s.id === id ? { ...s, variants: { ...s.variants, [m]: image } } : s;
+      setShots((prev) => prev.map(patch));
+      setCurrent((prev) => (prev && prev.id === id ? patch(prev) : prev));
+    },
+    [],
+  );
 
   const { state, progress, start, cancel } = useDevelop(handleComplete);
 
   const handleCapture = useCallback(
     (dataUrl: string) => {
       setSource(dataUrl);
+      sourceRef.current = dataUrl;
       setScreen("processing");
       start(dataUrl, mode);
     },
@@ -89,7 +109,12 @@ export default function Home() {
         )}
 
         {screen === "result" && current && (
-          <ResultScreen shot={current} onNewPhoto={handleNewPhoto} />
+          <ResultScreen
+            key={current.id}
+            shot={current}
+            onNewPhoto={handleNewPhoto}
+            onVariant={handleVariant}
+          />
         )}
 
         {screen === "gallery" && (
