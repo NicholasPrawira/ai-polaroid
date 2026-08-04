@@ -67,15 +67,15 @@ export default function Landing() {
       <main className="landing-reveal">
         <section>
           <p className="landing-pitch">
-            and it comes back looking like
+            Shot on your phone.
             <br />
-            it spent twenty years in a drawer.
+            Comes back looking like 2003.
           </p>
           <Link href="/camera" className="landing-cta">
-            Open the camera
+            Capture your moment
           </Link>
-          <p className="landing-note">
-            no account · nothing uploaded twice · works in the browser
+          <p className="landing-signin">
+            Already have an account? <Link href="/camera">Sign in</Link>
           </p>
         </section>
       </main>
