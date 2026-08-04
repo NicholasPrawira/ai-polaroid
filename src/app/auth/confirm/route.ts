@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { originOf } from "@/lib/origin";
 
 /**
  * Where the emailed sign-in link lands. Exchanging the token for a session sets
@@ -8,7 +9,10 @@ import { createClient } from "@/lib/supabase/server";
  * cannot write them.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  // Must be the host the visitor used: the session cookie was just written for
+  // that origin, and redirecting to a different one would leave it behind.
+  const origin = originOf(request.headers) ?? request.nextUrl.origin;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
 

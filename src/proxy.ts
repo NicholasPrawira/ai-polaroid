@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { originOf } from "@/lib/origin";
 
 /**
  * Next 16 renamed Middleware to Proxy: the file is `proxy.ts` and the export is
@@ -55,18 +56,17 @@ export async function proxy(request: NextRequest) {
 
   // API routes answer for themselves — a signed-out fetch should get JSON with
   // a 401, not an HTML login page it cannot parse.
+  // Redirect back to the host the visitor is actually on. `nextUrl` reports the
+  // configured hostname, and bouncing somebody to a different origin loses the
+  // session cookie that was set for theirs.
+  const origin = originOf(request.headers) ?? request.nextUrl.origin;
+
   if (!user && !isPublic && !path.startsWith("/api/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/login", origin));
   }
 
   if (user && path === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/", origin));
   }
 
   return response;

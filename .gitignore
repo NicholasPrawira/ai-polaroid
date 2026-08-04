@@ -42,3 +42,9 @@ next-env.d.ts
 
 # Keep the template, ignore the real thing
 !.env.example
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

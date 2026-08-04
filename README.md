@@ -41,6 +41,32 @@ until it is set the emailed link will refuse to complete.
 Image-capable models are only listed when you filter for them —
 `/api/v1/models?output_modalities=image`. The unfiltered model list omits them.
 
+## Tests
+
+```bash
+tests/stack.sh up    # database + PostgREST + gateway + model stub
+npm test             # SQL security suite, then the browser suite
+```
+
+Two layers, because they prove different things:
+
+- **`tests/db/security.test.sql`** attacks the migrations as a signed-in user:
+  can somebody write their own credit balance, read another account's photos,
+  claim a code twice, claim a voucher addressed to somebody else, grant
+  themselves credits. Run against a real Postgres, so the policies and functions
+  under test are the ones that ship. It is deliberately mutation-checked — remove
+  a policy and the suite fails.
+- **`tests/e2e/`** drives the app in Chromium with a synthetic camera: sign in,
+  shoot, reload and find the photo still there, file it, delete it, run out of
+  credits, redeem a code, issue a voucher, and fail a develop to confirm the
+  credit comes back.
+
+The browser suite runs against a real Postgres and a real PostgREST, with the
+auth and storage services stood in for (`tests/fake-supabase.mjs` says exactly
+what that does and does not cover). If Docker is available to you, `supabase
+start` gives you the genuine article and is the better option — it was blocked
+in the environment these were written in.
+
 ## How it works
 
 - `src/lib/useCamera.ts` — opens the stream, centre-crops a 1024px square JPEG.

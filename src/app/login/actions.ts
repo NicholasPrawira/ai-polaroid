@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { originOf } from "@/lib/origin";
 
 export type LoginState = { status: "idle" | "sent" | "error"; message: string };
 
@@ -26,12 +27,7 @@ export async function requestMagicLink(
 
   // Not every client sends `origin`, and a relative redirect would be rejected
   // by Supabase, so fall back to the forwarded host before giving up.
-  const h = await headers();
-  const forwardedHost = h.get("x-forwarded-host") ?? h.get("host");
-  const forwardedProto = h.get("x-forwarded-proto") ?? "https";
-  const origin =
-    h.get("origin") ??
-    (forwardedHost ? `${forwardedProto}://${forwardedHost}` : null);
+  const origin = originOf(await headers());
 
   if (!origin) {
     return { status: "error", message: "Could not work out where to send you." };

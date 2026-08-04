@@ -7,7 +7,10 @@ export const runtime = "nodejs";
 // Image generation runs ~10-40s; the platform default would cut it short.
 export const maxDuration = 60;
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/images";
+// Overridable so the develop path can be exercised end-to-end against a stub
+// instead of spending real money at the real API on every test run.
+const OPENROUTER_URL =
+  process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1/images";
 const DEFAULT_MODEL = "x-ai/grok-imagine-image-quality";
 
 /** Captures are square JPEGs from the viewfinder; this is generous headroom. */
