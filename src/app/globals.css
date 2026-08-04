@@ -271,11 +271,17 @@ body {
    No JavaScript, no scroll listeners, no measurement.
    ============================================================ */
 
+/* The landing is always dark, in either theme — same reasoning as the darkroom
+   screen in the app. A black field is what the ASCII needs to read as light. */
 .landing {
   /* Where the highlight band sits. Capped in rem as well as vh: on a tall
      screen a bare 38vh becomes 500-odd pixels of empty space above the words. */
   --band: min(34vh, 15rem);
-  --dim: color-mix(in oklch, var(--color-on-surface), transparent 62%);
+  --ink: #f3f0ef;
+  --paper: #0e0e0f;
+  --dim: color-mix(in oklch, var(--ink), transparent 62%);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 /* The ASCII canvas is fixed behind the hero. The dark panel below scrolls up
@@ -297,10 +303,10 @@ body {
   inset: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-surface) 30%, transparent) 0%,
-    color-mix(in srgb, var(--color-surface) 68%, transparent) 20%,
-    color-mix(in srgb, var(--color-surface) 68%, transparent) 84%,
-    color-mix(in srgb, var(--color-surface) 30%, transparent) 100%
+    color-mix(in srgb, var(--paper) 30%, transparent) 0%,
+    color-mix(in srgb, var(--paper) 62%, transparent) 20%,
+    color-mix(in srgb, var(--paper) 62%, transparent) 84%,
+    color-mix(in srgb, var(--paper) 30%, transparent) 100%
   );
 }
 
@@ -339,7 +345,7 @@ body {
   margin: 0;
   font: inherit;
   white-space: nowrap;
-  color: var(--color-on-surface);
+  color: var(--ink);
 }
 
 .landing-hero ul {
@@ -360,7 +366,7 @@ body {
     background: linear-gradient(
       180deg,
       var(--dim) 0 calc(var(--band) - 0.5lh),
-      var(--color-film-amber) calc(var(--band) - 0.55lh)
+      var(--color-film-amber-bright) calc(var(--band) - 0.55lh)
         calc(var(--band) + 0.55lh),
       var(--dim) calc(var(--band) + 0.5lh)
     );
@@ -386,7 +392,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: var(--color-darkroom);
+  background: #1c1c1d;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
@@ -442,7 +448,7 @@ body {
 .landing-steps {
   position: relative;
   z-index: 2;
-  background: var(--color-darkroom);
+  background: #1c1c1d;
   color: var(--color-on-darkroom);
   padding: 0 1.5rem 4rem;
 }
@@ -497,7 +503,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: var(--color-darkroom);
+  background: #1c1c1d;
   color: var(--color-on-darkroom);
   padding: 2rem 1.5rem max(2rem, env(safe-area-inset-bottom));
   border-top: 1px solid rgb(255 255 255 / 0.14);

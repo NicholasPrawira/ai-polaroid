@@ -79,7 +79,7 @@ export function AsciiBackground({
     atlasCtx.font = `700 ${GLYPH * 0.95}px ui-monospace, monospace`;
     atlasCtx.textAlign = "center";
     atlasCtx.textBaseline = "middle";
-    atlasCtx.fillStyle = "#000";
+    atlasCtx.fillStyle = "#fff"; // light glyphs, for a black field
     for (let i = 0; i < chars.length; i++) {
       atlasCtx.fillText(chars[i], GLYPH * (i + 0.5), GLYPH * 0.54);
     }

@@ -17,7 +17,8 @@ export const ASCII_FOREST = {
 
   cellSize: 10,
   coverage: 100,
-  invert: false,
+  /** On a black field the bright cells carry the glyphs, not the dark ones. */
+  invert: true,
   charSet: "standard",
 
   brightness: 0,
