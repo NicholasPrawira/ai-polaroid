@@ -161,9 +161,12 @@ export function AsciiBackground({
 
     function resize() {
       if (!canvas || !ready) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+      // A zero-sized canvas would propagate NaN through every ratio below.
+      // It happens for a frame after navigation, before layout has run.
+      if (w <= 0 || h <= 0) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
 
@@ -241,7 +244,7 @@ export function AsciiBackground({
       );
     }
 
-    function drawBackground(w: number, h: number) {
+    function drawBackground(w: number, h: number, dpr: number) {
       const c = ctx!;
 
       // Crossfade the two scenes into scratch first, so the blur and the
@@ -271,7 +274,6 @@ export function AsciiBackground({
         t.filter = "none";
 
         // Erase the in-focus band out of the blurred copy.
-        const dpr = tintC.height / h;
         const centre = (config.tiltPosition / 100) * h * dpr;
         const half = ((config.tiltFocus / 100) * h * dpr) / 2;
         const feather = (config.tiltFeather / 100) * h * dpr;
@@ -319,14 +321,21 @@ export function AsciiBackground({
       const c = ctx!;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      const dpr = canvas.width / w;
       const t = now / 1000;
+
+      // Not laid out yet, or laid out to nothing. Keep the loop alive and try
+      // again next frame rather than drawing with NaN.
+      if (w <= 0 || h <= 0 || canvas.width === 0) {
+        raf = requestAnimationFrame(render);
+        return;
+      }
+      const dpr = canvas.width / w;
 
       readScroll();
 
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, w, h);
-      drawBackground(w, h);
+      drawBackground(w, h, dpr);
 
       /* --- Glyph layer --- */
       layerCtx.clearRect(0, 0, w, h);
@@ -431,13 +440,15 @@ export function AsciiBackground({
       img.src = scene.src;
     });
 
-    const onResize = () => resize();
-    window.addEventListener("resize", onResize);
+    // A window listener never fires for an element that merely gains size —
+    // observe the canvas itself so a late layout re-initialises the grid.
+    const observer = new ResizeObserver(() => resize());
+    observer.observe(canvas);
 
     return () => {
       stopped = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
+      observer.disconnect();
     };
   }, [sources, trackSelector, config]);
 
