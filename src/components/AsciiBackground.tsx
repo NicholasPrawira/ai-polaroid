@@ -48,7 +48,7 @@ export const SCENES: Scene[] = [
   { src: "/scene-concert.png" },
   { src: "/scene-first-date.png" },
   // Cropped in and biased left, onto the near group rather than the whole room.
-  { src: "/scene-everyday.jpg", zoom: 1.6, focusX: 0.26 },
+  { src: "/scene-everyday.jpg", zoom: 1.15, focusX: 0.4 },
 ];
 
 export function AsciiBackground({
