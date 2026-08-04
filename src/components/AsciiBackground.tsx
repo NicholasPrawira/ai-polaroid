@@ -27,15 +27,25 @@ import { ASCII_FOREST, CHAR_SETS, AsciiConfig } from "@/lib/asciiConfig";
  * times rather than redrawing the glyphs three times.
  */
 
-export const SCENES = [
-  "/scene-travel1.jpg",
-  "/scene-reunion1.jpg",
-  "/scene-road-trip.png",
-  "/scene-graduation.jpg",
-  "/scene-hangout.png",
-  "/scene-concert.png",
-  "/scene-first-date.png",
-  "/scene-everyday.jpg",
+export type Scene = {
+  src: string;
+  /** 1 = cover-fit. Higher crops in. */
+  zoom?: number;
+  /** Which point of the source lands at the centre. 0 = left edge, 1 = right. */
+  focusX?: number;
+  focusY?: number;
+};
+
+export const SCENES: Scene[] = [
+  { src: "/scene-travel1.jpg" },
+  { src: "/scene-reunion1.jpg" },
+  { src: "/scene-road-trip.png" },
+  { src: "/scene-graduation.jpg" },
+  { src: "/scene-hangout.png" },
+  { src: "/scene-concert.png" },
+  { src: "/scene-first-date.png" },
+  // Cropped in and biased left, onto the near group rather than the whole room.
+  { src: "/scene-everyday.jpg", zoom: 1.35, focusX: 0.38 },
 ];
 
 export function AsciiBackground({
@@ -45,7 +55,7 @@ export function AsciiBackground({
   config = ASCII_FOREST,
   className,
 }: {
-  sources?: string[];
+  sources?: Scene[];
   trackSelector?: string;
   config?: AsciiConfig;
   className?: string;
@@ -169,10 +179,12 @@ export function AsciiBackground({
 
       const contrast = config.contrast / 100;
       const brightness = config.brightness / 100;
-      fields = images.map((img) => {
+      fields = images.map((img, si) => {
         sampleCtx.clearRect(0, 0, cols, rows);
-        // Downscaling to one pixel per cell *is* the box average.
-        sampleCtx.drawImage(img, 0, 0, cols, rows);
+        // Downscaling to one pixel per cell *is* the box average. The same
+        // framing is applied here, or the glyphs would not line up with the
+        // photograph behind them.
+        cover(sampleCtx, img, cols, rows, sources[si]);
         const d = sampleCtx.getImageData(0, 0, cols, rows).data;
         const f = new Float32Array(cols * rows);
         for (let i = 0; i < f.length; i++) {
@@ -204,17 +216,26 @@ export function AsciiBackground({
       });
     }
 
-    /** Cover-fit draw, used for both crossfaded scenes. */
+    /** Cover-fit draw with per-scene zoom and focal point. */
     function cover(
       c: CanvasRenderingContext2D,
       img: HTMLImageElement,
       w: number,
       h: number,
+      scene: Scene,
     ) {
-      const s = Math.max(w / img.width, h / img.height);
+      const s = Math.max(w / img.width, h / img.height) * (scene.zoom ?? 1);
       const dw = img.width * s;
       const dh = img.height * s;
-      c.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      // (w - dw) is negative once the image overflows, so a focus below 0.5
+      // slides the frame toward the left of the source.
+      c.drawImage(
+        img,
+        (w - dw) * (scene.focusX ?? 0.5),
+        (h - dh) * (scene.focusY ?? 0.5),
+        dw,
+        dh,
+      );
     }
 
     function drawBackground(w: number, h: number) {
@@ -224,10 +245,10 @@ export function AsciiBackground({
       // tilt-shift mask each run once instead of twice.
       scratchCtx.clearRect(0, 0, w, h);
       scratchCtx.globalAlpha = 1;
-      cover(scratchCtx, images[sceneA], w, h);
+      cover(scratchCtx, images[sceneA], w, h, sources[sceneA]);
       if (sceneB !== sceneA && mix > 0) {
         scratchCtx.globalAlpha = mix;
-        cover(scratchCtx, images[sceneB], w, h);
+        cover(scratchCtx, images[sceneB], w, h, sources[sceneB]);
         scratchCtx.globalAlpha = 1;
       }
 
@@ -381,7 +402,7 @@ export function AsciiBackground({
     }
 
     let loaded = 0;
-    sources.forEach((src, i) => {
+    sources.forEach((scene, i) => {
       const img = new Image();
       img.onload = () => {
         images[i] = img;
@@ -391,7 +412,7 @@ export function AsciiBackground({
           raf = requestAnimationFrame(render);
         }
       };
-      img.src = src;
+      img.src = scene.src;
     });
 
     const onResize = () => resize();
