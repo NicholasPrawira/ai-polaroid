@@ -272,7 +272,9 @@ body {
    ============================================================ */
 
 .landing {
-  --band: 50vh; /* where the highlight sits */
+  /* Where the highlight band sits. Above centre reads better here — the eye
+     lands on the words first, and the list below them stays in view longer. */
+  --band: 38vh;
   --dim: color-mix(in oklch, var(--color-on-surface), transparent 78%);
 }
 
