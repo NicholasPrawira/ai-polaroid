@@ -286,31 +286,25 @@ body {
   width: 100%;
   margin-bottom: 50vh;
   line-height: 1.2;
-  /* On narrow screens the prefix sits on its own line above the list. Keeping it
-     inline would force the type down to ~23px, because "Capture your Everyday
-     Moments" is about 15em wide; stacked, the longest line is just "Everyday
-     Moments" at ~8em, which buys back nearly double the size.
-
-     Items must never wrap — the sticky offset assumes each is exactly 1lh. */
-  font-size: clamp(2.1rem, 9vw, 3.25rem);
+  /* Sized so the longest pairing — "Capture your Everyday Moments" — still fits
+     on one line at 390px. Wrapping would be fatal, not just ugly: the sticky
+     offset below assumes every item is exactly 1lh tall. */
+  font-size: clamp(1.42rem, 5.5vw, 4.5rem);
   font-weight: 600;
   letter-spacing: -0.03em;
 }
 
 .landing-hero-inner {
   display: flex;
-  flex-direction: column;
-  align-items: start;
   width: 100%;
-  padding-inline: 1.25rem;
-  /* One line higher than the band, so the prefix sits directly above whichever
-     word is lit. */
-  padding-top: calc(var(--band) - 1.5lh);
+  align-items: start;
+  justify-content: center;
+  padding-top: calc(var(--band) - 0.5lh);
 }
 
 .landing-hero h1 {
   position: sticky;
-  top: calc(var(--band) - 1.5lh);
+  top: calc(var(--band) - 0.5lh);
   margin: 0;
   font: inherit;
   white-space: nowrap;
@@ -343,21 +337,6 @@ body {
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-  }
-}
-
-/* Wide enough for the pairing to sit on one line again. */
-@media (min-width: 46rem) {
-  .landing-hero {
-    font-size: clamp(2.5rem, 5.4vw, 4.5rem);
-  }
-  .landing-hero-inner {
-    flex-direction: row;
-    justify-content: center;
-    padding-top: calc(var(--band) - 0.5lh);
-  }
-  .landing-hero h1 {
-    top: calc(var(--band) - 0.5lh);
   }
 }
 
