@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "AI Disposable Camera",
   description:
-    "Point, shoot, wait. Your photo comes back looking like it spent twenty years in a drawer.",
+    "Point, shoot, wait. Whatever you point it at comes back on film.",
 };
 
 /* The words scroll through a fixed highlight band, lighting up one at a time.
@@ -25,21 +25,20 @@ const WORDS = [
 const STEPS = [
   {
     n: "01",
-    title: "Shoot without looking",
-    body: "A viewfinder, a shutter, a self-timer. No filters to preview, no grid of options — you frame it and you commit, the way a single-use camera makes you.",
+    title: "Point and commit",
+    body: "A viewfinder, a shutter, a self-timer — and nothing else. No filter to preview, no shot to retake. You frame it once, the way a single-use camera makes you.",
   },
   {
     n: "02",
     title: "Wait for it to develop",
-    body: "The photo goes dark and clears slowly while the film emulation runs. Seven seconds you can't skip. That pause is the point.",
+    body: "The frame sits dark and clears slowly while the film runs. A few seconds you can't skip. Every camera worth using made you wait for something.",
   },
   {
     n: "03",
-    title: "Keep what mattered",
-    body: "File shots into folders you name yourself — Japan 2026, Nico Wedding — or save them straight to your device.",
+    title: "File it under the night it happened",
+    body: "Japan 2026. Nico's wedding. Last Thursday. Folders you name yourself — or save the photo straight to your device and keep it anywhere.",
   },
 ];
-
 export default function Landing() {
   return (
     <div className="landing" style={{ ["--count" as string]: WORDS.length }}>
@@ -67,9 +66,9 @@ export default function Landing() {
       <main className="landing-reveal">
         <section>
           <p className="landing-pitch">
-            Shot on your phone.
+            Whatever you point it at,
             <br />
-            Comes back looking like 2003.
+            it comes back on film.
           </p>
           <Link href="/camera" className="landing-cta">
             Capture your moment
@@ -93,10 +92,8 @@ export default function Landing() {
       </section>
 
       <footer className="landing-footer">
-        <p>
-          Photos are developed by an image model and never stored on a server.
-        </p>
-        <Link href="/camera">Open the camera →</Link>
+        <p>Developed by an image model. Never stored on a server.</p>
+        <Link href="/camera">Capture your moment →</Link>
       </footer>
     </div>
   );
