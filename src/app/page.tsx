@@ -57,7 +57,7 @@ export default function Landing() {
             Capture your moment
           </Link>
           <p className="landing-signin">
-            Already have an account? <Link href="/camera">Sign in</Link>
+            Already have an account? <Link href="/login">Sign in</Link>
           </p>
         </section>
       </main>

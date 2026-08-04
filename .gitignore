@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Keep the template, ignore the real thing
 !.env.example
+
+# agent skill cache (npx skills add) — local tooling, not app source
+.agents/
+.claude/
+skills-lock.json

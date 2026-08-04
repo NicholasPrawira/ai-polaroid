@@ -22,7 +22,6 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 ## 3. Non-Goals (Out of Scope untuk v1)
 
 - Tidak untuk multi-user/skala besar dulu — fokus dipakai sendiri.
-- Tidak ada sistem akun/login kompleks di awal.
 - Tidak ada fitur social sharing/publish ke feed di dalam app (share manual via save/export dulu).
 - Tidak buat versi cetak fisik (integrasi printer) di v1.
 - Tidak ada penyimpanan foto permanen — gallery hilang saat refresh (lihat §5.5).
@@ -32,7 +31,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 ## 4. Target User
 
 - Nicho sendiri (personal use) — app di-deploy live (accessible via URL) supaya bisa diakses dari browser HP, bukan cuma dijalankan di local.
-- Tidak ada login/akun — akses langsung via link.
+- **Wajib akun (P0, lihat §5.8).** `/camera` — kamera, gallery, folder — hanya bisa diakses setelah sign in. Ini keputusan sadar: dibalik dari rencana awal "tidak ada akun", karena persistence & sinkron lintas device (roadmap) tidak masuk akal tanpa identitas user.
 
 ## 5. Core Features
 
@@ -109,24 +108,45 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Nilai warnanya tetap memakai hue netral dari design system, dengan tangga tonal
   yang dibalik.
 
-### 5.7 Account (kerangka UI, belum berfungsi)
-- Ikon user di kanan atas setiap layar membuka sheet Account.
-- Isinya: status "Not signed in" + tombol Sign in, jumlah foto & folder di sesi ini,
-  kartu Upgrade to Pro, lalu daftar menu — Change password, Billing & invoices,
-  Privacy & data, Sign out.
+### 5.7 Account
+- Ikon user di kanan atas setiap layar di dalam `/camera` membuka sheet Account.
+- Isinya sekarang: email user (diambil live dari Supabase, bukan dari session cache),
+  jumlah foto & folder di sesi ini, kartu Upgrade to Pro, lalu menu — Change password
+  (nyambung ke §5.8), Billing & invoices, Privacy & data, Sign out (nyambung).
 - Sub-layar **Plans**: dua tier (Free / Pro) beserta daftar fiturnya.
-- **Tidak ada satu pun yang berfungsi.** Belum ada auth, belum ada payment provider.
-  Angka harga adalah sketsa, bukan penawaran — tapi kuotanya dihitung dari biaya nyata
-  $0,06/foto: Free 10/bulan (biaya $0,60), Pro $9/bulan untuk 100 develop (biaya $6,
-  margin ~33% saat dipakai penuh).
+- **Billing & Privacy masih placeholder** — belum ada payment provider, belum ada
+  storage foto. Angka harga di Plans adalah sketsa, bukan penawaran — tapi kuotanya
+  dihitung dari biaya nyata $0,06/foto: Free 10/bulan (biaya $0,60), Pro $9/bulan
+  untuk 100 develop (biaya $6, margin ~33% saat dipakai penuh).
 - **Tier "unlimited" tidak bisa ditawarkan.** Satu user berat akan menghabiskan nilai
   langganannya sendiri dalam hitungan hari. Di produk ini kuota adalah produknya,
   bukan sekadar pembatas.
-- **Setiap item yang belum jalan menjelaskan dirinya saat ditekan** — bukan diam saja.
-  Tombol mati yang tidak merespons terbaca sebagai bug; tombol yang bilang "fitur ini
-  menunggu sistem akun" terbaca sebagai rencana.
-- Menu ini dibuat lebih dulu sebagai kerangka untuk merancang bentuk produk. Isinya
-  baru bisa disambungkan setelah P0 di ROADMAP.md dikerjakan (auth + storage).
+- Item yang belum jalan tetap menjelaskan dirinya saat ditekan, bukan diam saja.
+
+### 5.8 Auth (P0)
+- **Metode: email + password.** Bukan magic link — dipilih supaya "reset password"
+  jadi alur yang nyata, bukan konsep yang tidak berlaku.
+- Provider: **Supabase Auth**, project `ai-disposable-camera` (`zsiagbnyxmjhkkfancsb`,
+  region `ap-southeast-1`). Dibuat via Supabase MCP.
+- Halaman: `/login`, `/signup`, `/signup/check-email`, `/forgot-password`,
+  `/forgot-password/check-email`, `/update-password`. Semua satu palet gelap,
+  konsisten dengan §5.6.
+- `/camera` dan `/update-password` diproteksi oleh `src/proxy.ts` (lihat catatan
+  penamaan di §7) — belum login akan di-redirect ke `/login?next=<path asal>`.
+  Sebaliknya, `/login` `/signup` `/forgot-password` me-redirect balik ke `/camera`
+  kalau user ternyata sudah punya session aktif.
+- Reset password: `/forgot-password` (minta email) → email berisi link →
+  `/auth/confirm` menukar `token_hash` jadi session → `/update-password`
+  (set password baru). Change password dari sheet Account memakai layar yang sama,
+  bedanya user sudah datang dengan session aktif.
+- **Bergantung pada dua setting di Supabase Dashboard yang tidak bisa diatur lewat
+  MCP** (di luar kemampuan tool yang tersedia saat ini):
+  1. Authentication → URL Configuration: Site URL + Redirect URLs allow-list harus
+     memuat domain app (`http://localhost:3000` untuk dev).
+  2. Authentication → Email Templates: template "Confirm signup" dan "Reset
+     Password" harus diubah supaya link mengarah ke `/auth/confirm` di app sendiri
+     (format PKCE, `{{ .TokenHash }}`) — bukan endpoint verify bawaan Supabase.
+     Tanpa ini, link di email tidak akan pernah sampai ke `/auth/confirm`.
 
 ## 6. User Flow
 

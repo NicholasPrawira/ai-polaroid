@@ -58,14 +58,19 @@ menambah foto ke album itu. Tidak perlu akun untuk kontributor di versi awal
 
 ## 2. Fondasi (P0) — tanpa ini tidak ada yang jalan
 
+**Status: Auth sudah jalan.** `/camera` wajib sign in, email+password lewat Supabase
+Auth (project `ai-disposable-camera`). Detail lengkap di PRD §5.8. Yang masih
+kosong dari P0: Storage (foto masih tidak di-persist sama sekali) dan skema
+`albums`/`photos` di bawah ini — itu masih rencana, belum dikerjakan.
+
 ### Stack
 
-| Kebutuhan | Pilihan | Alasan |
-| --- | --- | --- |
-| Database | Supabase (Postgres) | Auth + Storage + DB satu layanan, cocok dengan Next.js/Vercel |
-| Object storage | Supabase Storage | Foto tidak boleh masuk Postgres sebagai base64 |
-| Auth | Supabase Auth | Magic link cukup; jangan bikin sistem password sendiri |
-| Antrian develop | Vercel Cron + tabel `jobs` | Cukup untuk skala ini; jangan pasang Redis dulu |
+| Kebutuhan | Pilihan | Alasan | Status |
+| --- | --- | --- | --- |
+| Auth | Supabase Auth | Email+password — dipilih di atas magic link supaya "reset password" jadi alur nyata | ✅ selesai |
+| Database | Supabase (Postgres) | Auth + Storage + DB satu layanan, cocok dengan Next.js/Vercel | project dibuat, skema belum |
+| Object storage | Supabase Storage | Foto tidak boleh masuk Postgres sebagai base64 | belum |
+| Antrian develop | Vercel Cron + tabel `jobs` | Cukup untuk skala ini; jangan pasang Redis dulu | belum |
 
 ### Skema awal
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   CheckIcon,
   ChevronLeftIcon,
@@ -13,14 +14,17 @@ import {
   SparkIcon,
   UserIcon,
 } from "./Chrome";
+import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/app/auth/actions";
 
 /**
  * Account menu.
  *
- * The structure is real; most of it is not wired to anything, because there are
- * no accounts and no billing yet. Rows that can't work say so when tapped
- * rather than silently doing nothing — a dead control reads as a bug, and this
- * one at least tells you what it's waiting on.
+ * Only renders inside /camera, which middleware gates to signed-in users — so
+ * a session can be assumed present. Change password and Sign out are real.
+ * Billing and Privacy still aren't wired to anything, because there's no
+ * payment provider and no photo storage yet; they say so when tapped rather
+ * than silently doing nothing.
  */
 
 /**
@@ -70,6 +74,18 @@ export function UserButton({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [pending, setPending] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  // /camera is auth-gated by middleware, so a session is guaranteed to exist
+  // by the time this mounts — this just fetches which one, from the Auth
+  // server rather than trusting the local session's cached copy.
+  useEffect(() => {
+    if (!open || email) return;
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setEmail(data.user?.email ?? null));
+  }, [open, email]);
 
   function close() {
     setOpen(false);
@@ -78,10 +94,8 @@ export function UserButton({
   }
 
   const rows = [
-    { id: "password", label: "Change password", icon: <KeyIcon /> },
     { id: "billing", label: "Billing & invoices", icon: <CreditCardIcon /> },
     { id: "privacy", label: "Privacy & data", icon: <ShieldIcon /> },
-    { id: "signout", label: "Sign out", icon: <LogOutIcon /> },
   ];
 
   return (
@@ -196,18 +210,11 @@ export function UserButton({
                     <UserIcon />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="type-body-md">Not signed in</p>
+                    <p className="type-body-md truncate">{email ?? "…"}</p>
                     <p className="type-viewfinder-label mt-1 text-[var(--color-on-surface-variant)]">
-                      photos live on this device only
+                      signed in
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPending("auth")}
-                    className="type-button-text shrink-0 rounded-md border border-[var(--color-outline-variant)] px-3.5 py-2.5"
-                  >
-                    Sign in
-                  </button>
                 </div>
 
                 <dl className="grid grid-cols-2 gap-3 px-5 pb-4">
@@ -245,6 +252,21 @@ export function UserButton({
                 </button>
 
                 <ul className="px-3 py-1">
+                  <li>
+                    <Link
+                      href="/update-password"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                    >
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        <KeyIcon />
+                      </span>
+                      <span className="type-body-md flex-1">
+                        Change password
+                      </span>
+                      <ChevronRightIcon />
+                    </Link>
+                  </li>
+
                   {rows.map((row) => (
                     <li key={row.id}>
                       <button
@@ -260,21 +282,34 @@ export function UserButton({
                       </button>
                     </li>
                   ))}
+
+                  <li>
+                    <button
+                      type="button"
+                      disabled={signingOut}
+                      onClick={() => {
+                        setSigningOut(true);
+                        signOut();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)] disabled:opacity-50"
+                    >
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        <LogOutIcon />
+                      </span>
+                      <span className="type-body-md flex-1">
+                        {signingOut ? "Signing out…" : "Sign out"}
+                      </span>
+                    </button>
+                  </li>
                 </ul>
               </>
             )}
 
             {pending && (
               <p className="mx-5 mt-3 rounded-md bg-[var(--color-surface-container)] px-4 py-3 text-[13px] leading-5 text-[var(--color-on-surface-variant)]">
-                {pending === "auth"
-                  ? "Accounts aren't built yet. Until they are, photos and folders live in this browser tab and clear on refresh."
-                  : pending === "billing"
-                    ? "No payment provider is connected, so nothing can be charged. Plans are a sketch, not an offer."
-                    : pending === "password"
-                      ? "There's no password to change — sign-in doesn't exist yet."
-                      : pending === "privacy"
-                        ? "Nothing leaves this device except the photo sent for developing, which isn't stored anywhere."
-                        : "You aren't signed in, so there's nothing to sign out of."}
+                {pending === "billing"
+                  ? "No payment provider is connected, so nothing can be charged. Plans are a sketch, not an offer."
+                  : "Your email and password are stored by Supabase Auth. Photos aren't stored anywhere — the one sent for developing goes to the image model and back, nothing more."}
               </p>
             )}
           </div>
