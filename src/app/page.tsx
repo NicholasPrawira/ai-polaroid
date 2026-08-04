@@ -7,7 +7,8 @@ import { ResultScreen } from "@/components/ResultScreen";
 import { GalleryScreen } from "@/components/GalleryScreen";
 import { TabBar } from "@/components/Chrome";
 import { Screen, Shot } from "@/lib/types";
-import { useDevelop } from "@/lib/useDevelop";
+import { DevelopMode, useDevelop } from "@/lib/useDevelop";
+import { isSupported } from "@/lib/filmShader";
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("camera");
@@ -15,6 +16,11 @@ export default function Home() {
   const [shots, setShots] = useState<Shot[]>([]);
   const [current, setCurrent] = useState<Shot | null>(null);
   const [source, setSource] = useState<string | null>(null);
+  // Local shader by default: instant, free, offline, and it can't alter a face.
+  // Falls back to the AI path where WebGL2 is missing.
+  const [mode, setMode] = useState<DevelopMode>(() =>
+    typeof window !== "undefined" && !isSupported() ? "ai" : "instant",
+  );
 
   // Promote a finished develop into a print.
   const handleComplete = useCallback((image: string) => {
@@ -34,9 +40,9 @@ export default function Home() {
     (dataUrl: string) => {
       setSource(dataUrl);
       setScreen("processing");
-      start(dataUrl);
+      start(dataUrl, mode);
     },
-    [start],
+    [start, mode],
   );
 
   const handleCancel = useCallback(() => {
@@ -46,8 +52,8 @@ export default function Home() {
   }, [cancel]);
 
   const handleRetry = useCallback(() => {
-    if (source) start(source);
-  }, [source, start]);
+    if (source) start(source, mode);
+  }, [source, start, mode]);
 
   const handleNewPhoto = useCallback(() => {
     setSource(null);
@@ -60,6 +66,7 @@ export default function Home() {
         <ProcessingScreen
           source={source}
           progress={progress}
+          mode={mode}
           error={state.status === "error" ? state.message : null}
           onCancel={handleCancel}
           onRetry={handleRetry}
@@ -73,7 +80,12 @@ export default function Home() {
       <div className="grain-layer" />
       <div className="relative z-2 flex min-h-dvh flex-col">
         {screen === "camera" && (
-          <CameraScreen onCapture={handleCapture} lastShot={shots[0] ?? null} />
+          <CameraScreen
+            onCapture={handleCapture}
+            lastShot={shots[0] ?? null}
+            mode={mode}
+            onModeChange={setMode}
+          />
         )}
 
         {screen === "result" && current && (

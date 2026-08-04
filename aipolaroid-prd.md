@@ -61,6 +61,23 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Nama model disimpan di environment variable (`OPENROUTER_IMAGE_MODEL`), supaya bisa ditukar/dibandingkan tanpa ubah kode.
 - Opsional: AI generate variasi kecil tiap kali (biar hasil tidak selalu identik/predictable, mirip randomness film asli).
 
+### 5.2a Dua mode develop
+- **Fast (default)** — shader WebGL lokal di device. Instan, gratis, jalan offline,
+  deterministik, dan secara teknis tidak mungkin mengubah wajah karena hanya
+  memetakan ulang warna per piksel.
+- **AI** — model image-to-image lewat OpenRouter (§5.2).
+- Chip di header untuk berpindah mode. Kalau WebGL2 tidak tersedia, otomatis jatuh
+  ke mode AI.
+- **Kenapa lokal jadi default:** satu-satunya hal yang tidak bisa ditiru shader
+  adalah menyalakan ulang pencahayaan berdasarkan kedalaman. Sisanya — grading,
+  grain, vignette, chromatic aberration, bloom, debu, softness lensa — bisa
+  dikerjakan lokal dengan kualitas setara atau lebih baik, karena parameternya
+  bisa dikontrol presisi. Untuk app memori, "tidak mungkin mengubah wajah" lebih
+  berharga daripada relighting yang meyakinkan.
+- Flash falloff didekati dengan menggelapkan area yang sudah redup (flash nyata
+  menyinari dengan 1/d², dan yang jauh biasanya memang lebih redup). Ini bukan
+  relighting sungguhan, tapi jauh lebih meyakinkan daripada vignette saja.
+
 ### 5.3 Animasi "Reveal"
 - Animasi develop **dimulai saat capture, berjalan bersamaan dengan request AI** — bukan setelah hasil diterima. Waktu tunggu jadi bagian dari pengalaman, bukan dead time.
 - Progres animasi ditahan di ~85% kalau request AI belum selesai, lalu diselesaikan begitu hasil datang. Jadi animasi tidak pernah "selesai duluan" lalu menggantung.

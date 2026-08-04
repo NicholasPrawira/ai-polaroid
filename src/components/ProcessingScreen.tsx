@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import { CloseIcon, HourglassIcon } from "./Chrome";
-import { formatCountdown } from "@/lib/useDevelop";
+import { DevelopMode, formatCountdown } from "@/lib/useDevelop";
 
 /**
  * The darkroom. The only dark screen in the app, bracketed by two light ones,
@@ -12,12 +12,14 @@ import { formatCountdown } from "@/lib/useDevelop";
 export function ProcessingScreen({
   source,
   progress,
+  mode,
   error,
   onCancel,
   onRetry,
 }: {
   source: string;
   progress: number;
+  mode: DevelopMode;
   error: string | null;
   onCancel: () => void;
   onRetry: () => void;
@@ -73,7 +75,7 @@ export function ProcessingScreen({
             <>
               <p className="type-headline-lg">Developing…</p>
               <p className="type-timestamp-sm mt-1.5 opacity-55">
-                EST. {formatCountdown(progress)}
+                EST. {formatCountdown(progress, mode)}
               </p>
             </>
           )}
@@ -92,8 +94,9 @@ export function ProcessingScreen({
           </button>
         ) : (
           <p className="type-viewfinder-label mx-auto max-w-[34ch] text-center leading-4 opacity-45">
-            Please wait while the AI develops the film. Do not close the
-            application.
+            {mode === "instant"
+              ? "Developing on device. No network needed."
+              : "Please wait while the AI develops the film. Do not close the application."}
           </p>
         )}
       </div>

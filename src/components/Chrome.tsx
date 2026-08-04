@@ -167,6 +167,13 @@ export const FlashIcon = ({ on }: { on: boolean }) => (
   </svg>
 );
 
+export const BoltIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M12 3.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17z" />
+    <path d="M12.5 7.5L9 12.8h3l-.5 3.7 3.5-5.3h-3z" />
+  </svg>
+);
+
 export const TimerIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
     <circle cx="12" cy="13.5" r="7.5" />

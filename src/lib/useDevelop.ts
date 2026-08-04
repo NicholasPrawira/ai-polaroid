@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { applyFilmLook } from "./filmShader";
+
+export type DevelopMode = "instant" | "ai";
 
 /**
  * How long a develop is expected to take. The mockup showed 00:45, but measured
@@ -9,6 +12,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * real number with a little headroom for busier photos.
  */
 export const ESTIMATED_MS = 12_000;
+
+/**
+ * The local shader finishes in milliseconds, which would make the develop
+ * animation flash past. Hold it to a deliberate beat instead — the waiting is
+ * the point, and a consistent one reads better than an instant one.
+ */
+const INSTANT_MS = 2_400;
 
 /** Progress is parked here until the AI actually returns (PRD 5.3). */
 const HOLD_AT = 0.85;
@@ -55,7 +65,8 @@ export function useDevelop(onComplete: (image: string) => void) {
   }, [stopLoop]);
 
   const start = useCallback(
-    (imageDataUrl: string) => {
+    (imageDataUrl: string, mode: DevelopMode = "ai") => {
+      const duration = mode === "instant" ? INSTANT_MS : ESTIMATED_MS;
       abortRef.current?.abort();
       stopLoop();
 
@@ -73,7 +84,7 @@ export function useDevelop(onComplete: (image: string) => void) {
 
         if (arrivedAtRef.current === null) {
           // Ease-out toward the hold point: quick at first, then patient.
-          const t = Math.min(1, (now - startedAtRef.current) / ESTIMATED_MS);
+          const t = Math.min(1, (now - startedAtRef.current) / duration);
           setProgress(HOLD_AT * (1 - Math.pow(1 - t, 2)));
         } else {
           const t = Math.min(1, (now - arrivedAtRef.current) / FINISH_MS);
@@ -88,19 +99,32 @@ export function useDevelop(onComplete: (image: string) => void) {
       };
       rafRef.current = requestAnimationFrame(tick);
 
-      fetch("/api/develop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageDataUrl }),
-        signal: controller.signal,
-      })
-        .then(async (res) => {
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body.error ?? `Develop failed (${res.status}).`);
-          }
-          return body.image as string;
-        })
+      const work: Promise<string> =
+        mode === "instant"
+          ? applyFilmLook(imageDataUrl).then(async (image) => {
+              // The shader is done almost immediately; wait out the rest of the
+              // animation so every instant develop feels the same length.
+              const elapsed = performance.now() - startedAtRef.current;
+              const remaining = duration * HOLD_AT - elapsed;
+              if (remaining > 0) {
+                await new Promise((r) => window.setTimeout(r, remaining));
+              }
+              return image;
+            })
+          : fetch("/api/develop", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: imageDataUrl }),
+              signal: controller.signal,
+            }).then(async (res) => {
+              const body = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                throw new Error(body.error ?? `Develop failed (${res.status}).`);
+              }
+              return body.image as string;
+            });
+
+      work
         .then((image) => {
           if (controller.signal.aborted) return;
           setProgress((p) => {
@@ -145,10 +169,11 @@ export function useDevelop(onComplete: (image: string) => void) {
   return { state, progress, start, cancel, reset };
 }
 
-export function formatCountdown(progress: number): string {
-  const remainingMs = Math.max(0, ESTIMATED_MS * (1 - progress / 0.85));
-  const total = Math.ceil(remainingMs / 1000);
-  const mm = String(Math.floor(total / 60)).padStart(2, "0");
-  const ss = String(total % 60).padStart(2, "0");
+export function formatCountdown(progress: number, mode: DevelopMode): string {
+  const total = mode === "instant" ? INSTANT_MS : ESTIMATED_MS;
+  const remainingMs = Math.max(0, total * (1 - progress / 0.85));
+  const secs = Math.ceil(remainingMs / 1000);
+  const mm = String(Math.floor(secs / 60)).padStart(2, "0");
+  const ss = String(secs % 60).padStart(2, "0");
   return `${mm}:${ss}`;
 }
