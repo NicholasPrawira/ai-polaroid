@@ -29,7 +29,7 @@ import { ASCII_FOREST, CHAR_SETS, AsciiConfig } from "@/lib/asciiConfig";
 
 export const SCENES = [
   "/scene-travel1.jpg",
-  "/scene-reunion.png",
+  "/scene-reunion1.jpg",
   "/scene-road-trip.png",
   "/scene-graduation.png",
   "/scene-hangout.png",
