@@ -19,13 +19,16 @@ type State =
   | { status: "developing" }
   | { status: "error"; message: string };
 
+/** What the server hands back once a capture has been developed and stored. */
+export type Developed = { id: string; image: string; credits: number };
+
 /**
  * Drives the develop animation *concurrently* with the API request, rather than
  * after it. The bar eases toward HOLD_AT over the estimated duration and waits
  * there; once the image lands it completes over FINISH_MS. That way the
  * animation can never finish early and leave the user staring at a full bar.
  */
-export function useDevelop(onComplete: (image: string) => void) {
+export function useDevelop(onComplete: (developed: Developed) => void) {
   const [state, setState] = useState<State>({ status: "idle" });
   const [progress, setProgress] = useState(0);
 
@@ -99,9 +102,9 @@ export function useDevelop(onComplete: (image: string) => void) {
           if (!res.ok) {
             throw new Error(body.error ?? `Develop failed (${res.status}).`);
           }
-          return body.image as string;
+          return body as Developed;
         })
-        .then((image) => {
+        .then((developed) => {
           if (controller.signal.aborted) return;
           setProgress((p) => {
             progressAtArrivalRef.current = p;
@@ -113,7 +116,7 @@ export function useDevelop(onComplete: (image: string) => void) {
             if (controller.signal.aborted) return;
             setState({ status: "idle" });
             setProgress(0);
-            onCompleteRef.current(image);
+            onCompleteRef.current(developed);
           }, FINISH_MS);
         })
         .catch((err: unknown) => {

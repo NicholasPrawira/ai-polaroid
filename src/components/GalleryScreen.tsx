@@ -5,7 +5,7 @@ import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import { UserButton } from "./UserButton";
 import { ChevronLeftIcon, FolderIcon } from "./Chrome";
-import { Folder, Shot, dayLabel } from "@/lib/types";
+import { AccountSummary, Folder, Shot, dayLabel } from "@/lib/types";
 
 /** Deterministic tilt so a photo doesn't jump around between renders. */
 function tilt(id: string): number {
@@ -83,14 +83,12 @@ export function GalleryScreen({
   shots,
   folders,
   onSelect,
-  photoCount,
-  folderCount,
+  account,
 }: {
   shots: Shot[];
   folders: Folder[];
   onSelect: (shot: Shot) => void;
-  photoCount: number;
-  folderCount: number;
+  account: AccountSummary;
 }) {
   const [tab, setTab] = useState<"all" | "folders">("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
@@ -151,7 +149,7 @@ export function GalleryScreen({
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <span />
         <h1 className="text-center text-[17px] font-semibold">Gallery</h1>
-        <UserButton photoCount={photoCount} folderCount={folderCount} />
+        <UserButton account={account} />
       </header>
 
       <div className="flex justify-center px-6 pt-1 pb-3">
@@ -180,7 +178,7 @@ export function GalleryScreen({
       </div>
 
       <p className="type-viewfinder-label px-6 pb-4 text-center leading-4 text-[var(--color-on-surface-variant)] opacity-70">
-        This session only — nothing is stored. Save a photo to keep it.
+        Saved to your account. Sign in anywhere to find them again.
       </p>
 
       {tab === "all" ? (

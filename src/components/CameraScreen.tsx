@@ -13,7 +13,7 @@ import {
   TimerIcon,
 } from "./Chrome";
 import { UserButton } from "./UserButton";
-import { Shot } from "@/lib/types";
+import { AccountSummary, Shot } from "@/lib/types";
 
 /** Self-timer positions, cycled by tapping the chip. */
 const TIMER_STEPS = [0, 3, 10] as const;
@@ -21,13 +21,14 @@ const TIMER_STEPS = [0, 3, 10] as const;
 export function CameraScreen({
   onCapture,
   lastShot,
-  photoCount,
-  folderCount,
+  notice,
+  account,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
-  photoCount: number;
-  folderCount: number;
+  /** Shown when the shutter refused, e.g. an empty credit balance. */
+  notice: string | null;
+  account: AccountSummary;
 }) {
   const { videoRef, facing, flip, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
@@ -120,7 +121,7 @@ export function CameraScreen({
           >
             <FlashIcon on={flash} />
           </IconButton>
-          <UserButton photoCount={photoCount} folderCount={folderCount} />
+          <UserButton account={account} />
         </div>
       </header>
 
@@ -201,9 +202,18 @@ export function CameraScreen({
         </div>
       </div>
 
-      <p className="type-viewfinder-label -mt-2 pb-2 text-center text-[var(--color-on-surface-variant)] opacity-60">
-        {countdown !== null ? "tap shutter to cancel" : " "}
-      </p>
+      {notice ? (
+        <p
+          role="status"
+          className="type-timestamp-sm -mt-2 px-8 pb-2 text-center text-[var(--color-error)]"
+        >
+          {notice}
+        </p>
+      ) : (
+        <p className="type-viewfinder-label -mt-2 pb-2 text-center text-[var(--color-on-surface-variant)] opacity-60">
+          {countdown !== null ? "tap shutter to cancel" : " "}
+        </p>
+      )}
     </div>
   );
 }

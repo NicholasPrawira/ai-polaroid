@@ -12,7 +12,7 @@ import {
 import { UserButton } from "./UserButton";
 import { FolderPicker } from "./FolderPicker";
 import { FolderIcon } from "./Chrome";
-import { Folder, Shot } from "@/lib/types";
+import { AccountSummary, Folder, Shot } from "@/lib/types";
 import { prepareDownload, saveBlob } from "@/lib/export";
 
 export function ResultScreen({
@@ -21,18 +21,20 @@ export function ResultScreen({
   onNewPhoto,
   onFile,
   onCreateFolder,
-  photoCount,
-  folderCount,
+  onDelete,
+  account,
 }: {
   shot: Shot;
   folders: Folder[];
   onNewPhoto: () => void;
   onFile: (shotId: string, folderId: string | null) => void;
-  onCreateFolder: (name: string) => string;
-  photoCount: number;
-  folderCount: number;
+  onCreateFolder: (name: string) => Promise<string | null>;
+  onDelete: (shotId: string) => Promise<void>;
+  account: AccountSummary;
 }) {
   const [picking, setPicking] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const folder = folders.find((f) => f.id === shot.folderId) ?? null;
   // Prepared up front, not on click. Safari revokes the user-activation flag
   // across an await, which blocks both the share sheet and the download — so
@@ -76,7 +78,7 @@ export function ResultScreen({
         <h1 className="text-center text-[15px] font-semibold">
           AI Disposable Camera
         </h1>
-        <UserButton photoCount={photoCount} folderCount={folderCount} />
+        <UserButton account={account} />
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8">
@@ -121,6 +123,38 @@ export function ResultScreen({
         <SecondaryButton onClick={onNewPhoto} icon={<RefreshIcon />}>
           New Photo
         </SecondaryButton>
+
+        {confirming ? (
+          <div className="flex items-center justify-center gap-4 pt-1">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                await onDelete(shot.id);
+              }}
+              className="type-viewfinder-label text-[var(--color-error)] disabled:opacity-50"
+            >
+              {deleting ? "deleting…" : "delete for good"}
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setConfirming(false)}
+              className="type-viewfinder-label text-[var(--color-on-surface-variant)]"
+            >
+              keep it
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="type-viewfinder-label w-full pt-1 text-center text-[var(--color-on-surface-variant)] opacity-70"
+          >
+            delete photo
+          </button>
+        )}
       </div>
 
       {picking && (

@@ -15,16 +15,32 @@ export function FolderPicker({
   folders: Folder[];
   current: string | null;
   onPick: (folderId: string | null) => void;
-  onCreate: (name: string) => string;
+  onCreate: (name: string) => Promise<string | null>;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  // Creating a folder is a round trip to the database now, so the sheet has to
+  // stay open until it lands — closing early would file the photo into a folder
+  // that might not exist.
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) return;
-    onPick(onCreate(trimmed));
+    if (!trimmed || saving) return;
+
+    setSaving(true);
+    setError(null);
+    const id = await onCreate(trimmed);
+    setSaving(false);
+
+    if (!id) {
+      setError("Could not create that folder.");
+      return;
+    }
+
+    onPick(id);
     setName("");
     onClose();
   }
@@ -91,23 +107,30 @@ export function FolderPicker({
 
         <form
           onSubmit={submit}
-          className="flex items-center gap-2 border-t border-[var(--color-outline-variant)] px-5 pt-4"
+          className="border-t border-[var(--color-outline-variant)] px-5 pt-4"
         >
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value.slice(0, 40))}
-            placeholder="New folder — e.g. Japan 2026"
-            aria-label="New folder name"
-            className="type-body-md min-w-0 flex-1 rounded-md border border-[var(--color-outline-variant)] bg-transparent px-3 py-2.5 text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] focus:border-[var(--color-on-surface)] focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={!name.trim()}
-            aria-label="Create folder"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-[var(--color-primary)] text-[var(--color-on-primary)] disabled:opacity-40"
-          >
-            <PlusIcon />
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 40))}
+              placeholder="New folder — e.g. Japan 2026"
+              aria-label="New folder name"
+              className="type-body-md min-w-0 flex-1 rounded-md border border-[var(--color-outline-variant)] bg-transparent px-3 py-2.5 text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] focus:border-[var(--color-on-surface)] focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!name.trim() || saving}
+              aria-label="Create folder"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-[var(--color-primary)] text-[var(--color-on-primary)] disabled:opacity-40"
+            >
+              <PlusIcon />
+            </button>
+          </div>
+          {error && (
+            <p className="type-timestamp-sm mt-2 text-[var(--color-error)]">
+              {error}
+            </p>
+          )}
         </form>
       </div>
     </div>
