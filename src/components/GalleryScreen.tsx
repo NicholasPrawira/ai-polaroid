@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
-import { ThemeToggle } from "./ThemeToggle";
+import { UserButton } from "./UserButton";
 import { ChevronLeftIcon, FolderIcon } from "./Chrome";
 import { Folder, Shot, dayLabel } from "@/lib/types";
 
@@ -83,10 +83,14 @@ export function GalleryScreen({
   shots,
   folders,
   onSelect,
+  photoCount,
+  folderCount,
 }: {
   shots: Shot[];
   folders: Folder[];
   onSelect: (shot: Shot) => void;
+  photoCount: number;
+  folderCount: number;
 }) {
   const [tab, setTab] = useState<"all" | "folders">("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
@@ -145,9 +149,9 @@ export function GalleryScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
-        <ThemeToggle />
-        <h1 className="text-center text-[17px] font-semibold">Gallery</h1>
         <span />
+        <h1 className="text-center text-[17px] font-semibold">Gallery</h1>
+        <UserButton photoCount={photoCount} folderCount={folderCount} />
       </header>
 
       <div className="flex justify-center px-6 pt-1 pb-3">

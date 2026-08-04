@@ -91,7 +91,12 @@ export default function Home() {
       <div className="grain-layer" />
       <div className="relative z-2 flex min-h-dvh flex-col">
         {screen === "camera" && (
-          <CameraScreen onCapture={handleCapture} lastShot={shots[0] ?? null} />
+          <CameraScreen
+            onCapture={handleCapture}
+            lastShot={shots[0] ?? null}
+            photoCount={shots.length}
+            folderCount={folders.length}
+          />
         )}
 
         {screen === "result" && current && (
@@ -101,6 +106,8 @@ export default function Home() {
             onNewPhoto={handleNewPhoto}
             onFile={handleFile}
             onCreateFolder={handleCreateFolder}
+            photoCount={shots.length}
+            folderCount={folders.length}
           />
         )}
 
@@ -112,6 +119,8 @@ export default function Home() {
               setCurrent(shot);
               setScreen("result");
             }}
+            photoCount={shots.length}
+            folderCount={folders.length}
           />
         )}
 

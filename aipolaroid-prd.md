@@ -95,8 +95,15 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Tampilan memakai rotasi ringan ±2 derajat (semangat Film Stack dari design system), tapi tanpa bingkai kertas.
 - User perlu diberi tahu secara halus bahwa foto tidak tersimpan permanen — save/download adalah satu-satunya cara menyimpan.
 
+### 5.7 Account (placeholder)
+- Ikon user di kanan atas setiap layar, membuka sheet berisi: status "Not signed in",
+  jumlah foto dan folder di sesi ini, serta toggle light/dark mode.
+- **Belum ada sistem akun.** Sheet ini sengaja menyatakan itu apa adanya, bukan
+  menampilkan tombol sign-in yang tidak menuju ke mana-mana.
+- Setting dipindah ke sini supaya header kamera cuma berisi kontrol kamera.
+
 ### 5.6 Light & Dark Mode
-- App mendukung light dan dark mode, di-toggle lewat tombol sun/moon di header.
+- App mendukung light dan dark mode, di-toggle dari sheet Account (§5.7).
 - Default mengikuti preferensi OS (`prefers-color-scheme`); begitu user memilih manual, pilihannya disimpan di `localStorage` dan menang atas OS.
 - Script inline dijalankan sebelum paint pertama supaya tidak ada kedip tema salah saat load.
 - Palet dark diturunkan dari token light: hue netral dipertahankan, tangga tonalnya dibalik.

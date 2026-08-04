@@ -9,7 +9,7 @@ import {
   RefreshIcon,
   SecondaryButton,
 } from "./Chrome";
-import { ThemeToggle } from "./ThemeToggle";
+import { UserButton } from "./UserButton";
 import { FolderPicker } from "./FolderPicker";
 import { FolderIcon } from "./Chrome";
 import { Folder, Shot } from "@/lib/types";
@@ -21,12 +21,16 @@ export function ResultScreen({
   onNewPhoto,
   onFile,
   onCreateFolder,
+  photoCount,
+  folderCount,
 }: {
   shot: Shot;
   folders: Folder[];
   onNewPhoto: () => void;
   onFile: (shotId: string, folderId: string | null) => void;
   onCreateFolder: (name: string) => string;
+  photoCount: number;
+  folderCount: number;
 }) {
   const [picking, setPicking] = useState(false);
   const folder = folders.find((f) => f.id === shot.folderId) ?? null;
@@ -68,11 +72,11 @@ export function ResultScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
-        <ThemeToggle />
+        <span />
         <h1 className="text-center text-[15px] font-semibold">
           AI Disposable Camera
         </h1>
-        <span />
+        <UserButton photoCount={photoCount} folderCount={folderCount} />
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8">
