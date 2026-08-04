@@ -30,9 +30,13 @@ Image-capable models are only listed when you filter for them —
 
 - `src/components/AsciiBackground.tsx` — the hero backdrop: a Canvas2D
   reimplementation of the "Forest" ASCII effect (characters mode, grayscale,
-  tilt-shift, chromatic + halftone + film dust, shimmer). Glyphs are blitted
-  from a pre-rendered atlas rather than drawn with fillText, because the grid
-  runs to five figures of cells per frame.
+  tilt-shift, chromatic + halftone + film dust, shimmer). One scene per hero
+  word; the scene follows whichever word is lit, crossfading by interpolating
+  luminance fields rather than swapping images, so the glyphs morph. Glyphs are
+  blitted from a pre-rendered atlas rather than drawn with fillText, because the
+  grid runs to five figures of cells per frame.
+  Scenes live in `public/scene-*.png` and are placeholders — drop real photos in
+  with the same names to replace them.
 - `src/app/page.tsx` — landing page. The scrolling word hero is pure CSS: a
   sticky list whose words each carry a `background-attachment: fixed` gradient
   clipped to their glyphs, so a stationary highlight band appears to travel

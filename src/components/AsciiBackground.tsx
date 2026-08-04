@@ -4,29 +4,49 @@ import { useEffect, useRef } from "react";
 import { ASCII_FOREST, CHAR_SETS, AsciiConfig } from "@/lib/asciiConfig";
 
 /**
- * Canvas2D reimplementation of the "Forest" ASCII effect.
+ * Canvas2D reimplementation of the "Forest" ASCII effect, driven by scroll.
  *
  * Pipeline, in the order the spec lays it out:
  *   1. background — the photo, blurred, at bgOpacity, with a tilt-shift band
- *   2. sampling   — the photo downscaled to one pixel per cell, which is the
- *                   cheapest correct way to get each cell's average
+ *   2. sampling   — each photo downscaled to one pixel per cell, which is the
+ *                   cheapest correct way to get a cell's average
  *   3. glyphs     — a character per cell, chosen by luminance
  *   4. tone       — brightness / contrast / grayscale, folded into step 3
  *   5. post       — chromatic, halftone, film dust
  *   8. animation  — shimmer, a travelling wave added to luminance
  *
- * Two decisions carry the frame budget. Glyphs are pre-rendered once into a
- * sprite atlas and blitted, because ~13,000 fillText calls per frame is not
- * affordable and ~13,000 drawImage calls is. And chromatic aberration runs as
- * three composites of the finished glyph layer rather than three passes over
- * the glyphs themselves.
+ * The scene changes with the hero word that is currently lit. Rather than
+ * swapping images, the luminance fields are interpolated: every scene is
+ * sampled once into a Float32Array, and each frame reads a blend of the two
+ * neighbouring fields. Glyphs therefore morph into each other instead of
+ * cutting, and the crossfade costs one lerp per cell.
+ *
+ * Two decisions carry the frame budget. Glyphs are blitted from a sprite atlas
+ * rather than drawn with fillText, because the grid runs to five figures of
+ * cells. And chromatic aberration composites the finished glyph layer three
+ * times rather than redrawing the glyphs three times.
  */
+
+export const SCENES = [
+  "/scene-travel.png",
+  "/scene-reunion.png",
+  "/scene-road-trip.png",
+  "/scene-graduation.png",
+  "/scene-hangout.png",
+  "/scene-concert.png",
+  "/scene-first-date.png",
+  "/scene-everyday.png",
+];
+
 export function AsciiBackground({
-  src = "/hero-forest.png",
+  sources = SCENES,
+  /** Elements whose position decides which scene is showing. */
+  trackSelector = ".landing-hero li",
   config = ASCII_FOREST,
   className,
 }: {
-  src?: string;
+  sources?: string[];
+  trackSelector?: string;
   config?: AsciiConfig;
   className?: string;
 }) {
@@ -47,12 +67,13 @@ export function AsciiBackground({
 
     let raf = 0;
     let stopped = false;
-    let image: HTMLImageElement | null = null;
+    const images: HTMLImageElement[] = [];
+    let ready = false;
 
     /* --- Glyph atlas: each character rendered once, then blitted per cell --- */
     const atlas = document.createElement("canvas");
     const atlasCtx = atlas.getContext("2d")!;
-    const GLYPH = cell * 2; // 2x for crispness when the cell is small
+    const GLYPH = cell * 2; // 2x so the blit stays crisp
     atlas.width = GLYPH * chars.length;
     atlas.height = GLYPH;
     atlasCtx.font = `700 ${GLYPH * 0.95}px ui-monospace, monospace`;
@@ -68,10 +89,11 @@ export function AsciiBackground({
     const sampleCtx = sample.getContext("2d", { willReadFrequently: true })!;
     const layer = document.createElement("canvas");
     const layerCtx = layer.getContext("2d")!;
-    const tint = document.createElement("canvas");
-    const tintCtx = tint.getContext("2d")!;
+    const scratch = document.createElement("canvas");
+    const scratchCtx = scratch.getContext("2d")!;
+    const tintC = document.createElement("canvas");
+    const tintCtx = tintC.getContext("2d")!;
 
-    /* --- Halftone dot pattern, built once --- */
     const dot = document.createElement("canvas");
     dot.width = dot.height = 4;
     const dotCtx = dot.getContext("2d")!;
@@ -79,108 +101,162 @@ export function AsciiBackground({
     dotCtx.fillRect(0, 0, 1, 1);
     const halftone = ctx.createPattern(dot, "repeat")!;
 
+    /** Piecewise-linear evaluation of the tone curve control points. */
+    const curve = (v: number) => {
+      const pts = config.toneCurve;
+      for (let i = 1; i < pts.length; i++) {
+        if (v <= pts[i].x) {
+          const a = pts[i - 1];
+          const b = pts[i];
+          const t = b.x === a.x ? 0 : (v - a.x) / (b.x - a.x);
+          return a.y + (b.y - a.y) * t;
+        }
+      }
+      return pts[pts.length - 1].y;
+    };
+
     let cols = 0;
     let rows = 0;
-    let lum: Float32Array = new Float32Array(0);
+    /** One luminance field per scene. */
+    let fields: Float32Array[] = [];
+
+    /* --- Which scene, and how far into the next one --- */
+    let sceneA = 0;
+    let sceneB = 0;
+    let mix = 0;
+
+    function readScroll() {
+      const items = document.querySelectorAll<HTMLElement>(trackSelector);
+      if (!items.length) return;
+      // Mirrors --band in globals.css: min(34vh, 15rem). Custom properties
+      // holding a min() come back unresolved from getComputedStyle, so it is
+      // cheaper and more reliable to recompute it than to parse it.
+      const band = Math.min(window.innerHeight * 0.34, 15 * 16);
+
+      // Position of the band, expressed in list-item units.
+      const first = items[0].getBoundingClientRect();
+      const lh = items.length > 1
+        ? items[1].getBoundingClientRect().top - first.top
+        : first.height;
+      const pos = lh > 0 ? (band - (first.top + first.height / 2)) / lh : 0;
+
+      const clamped = Math.max(0, Math.min(items.length - 1, pos));
+      sceneA = Math.floor(clamped);
+      sceneB = Math.min(sources.length - 1, sceneA + 1);
+      mix = clamped - sceneA;
+    }
 
     function resize() {
-      if (!canvas || !image) return;
-      // DPR is deliberately capped: this is a decorative backdrop, and the
-      // glyph grid is the detail budget, not the pixel grid.
+      if (!canvas || !ready) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       cols = Math.ceil(w / cell);
       rows = Math.ceil(h / cell);
 
-      layer.width = canvas.width;
-      layer.height = canvas.height;
-      tint.width = canvas.width;
-      tint.height = canvas.height;
+      for (const c of [layer, scratch, tintC]) {
+        c.width = canvas.width;
+        c.height = canvas.height;
+      }
       layerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      scratchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Downscaling to one pixel per cell *is* the box average.
       sample.width = cols;
       sample.height = rows;
-      sampleCtx.clearRect(0, 0, cols, rows);
-      sampleCtx.drawImage(image, 0, 0, cols, rows);
-      const data = sampleCtx.getImageData(0, 0, cols, rows).data;
 
-      lum = new Float32Array(cols * rows);
       const contrast = config.contrast / 100;
       const brightness = config.brightness / 100;
-      for (let i = 0; i < cols * rows; i++) {
-        const r = data[i * 4] / 255;
-        const g = data[i * 4 + 1] / 255;
-        const b = data[i * 4 + 2] / 255;
-        // grayscale: 100 — luma only, no channel mixing to preserve
-        let v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        v = (v - 0.5) * contrast + 0.5 + brightness;
-        lum[i] = Math.min(1, Math.max(0, v));
-      }
+      fields = images.map((img) => {
+        sampleCtx.clearRect(0, 0, cols, rows);
+        // Downscaling to one pixel per cell *is* the box average.
+        sampleCtx.drawImage(img, 0, 0, cols, rows);
+        const d = sampleCtx.getImageData(0, 0, cols, rows).data;
+        const f = new Float32Array(cols * rows);
+        for (let i = 0; i < f.length; i++) {
+          // grayscale: 100 — luma only
+          let v =
+            (0.2126 * d[i * 4] + 0.7152 * d[i * 4 + 1] + 0.0722 * d[i * 4 + 2]) /
+            255;
+          v = (v - 0.5) * contrast + 0.5 + brightness;
+          v = curve(v < 0 ? 0 : v > 1 ? 1 : v);
+          f[i] = v < 0 ? 0 : v > 1 ? 1 : v;
+        }
+        return f;
+      });
     }
 
-    /* --- Background: blurred photo, with a sharp tilt-shift band --- */
+    /** Cover-fit draw, used for both crossfaded scenes. */
+    function cover(
+      c: CanvasRenderingContext2D,
+      img: HTMLImageElement,
+      w: number,
+      h: number,
+    ) {
+      const s = Math.max(w / img.width, h / img.height);
+      const dw = img.width * s;
+      const dh = img.height * s;
+      c.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    }
+
     function drawBackground(w: number, h: number) {
-      if (!image) return;
       const c = ctx!;
+
+      // Crossfade the two scenes into scratch first, so the blur and the
+      // tilt-shift mask each run once instead of twice.
+      scratchCtx.clearRect(0, 0, w, h);
+      scratchCtx.globalAlpha = 1;
+      cover(scratchCtx, images[sceneA], w, h);
+      if (sceneB !== sceneA && mix > 0) {
+        scratchCtx.globalAlpha = mix;
+        cover(scratchCtx, images[sceneB], w, h);
+        scratchCtx.globalAlpha = 1;
+      }
+
       c.save();
       c.globalAlpha = config.bgOpacity / 100;
-
-      // Cover-fit the photo.
-      const scale = Math.max(w / image.width, h / image.height);
-      const dw = image.width * scale;
-      const dh = image.height * scale;
-      const dx = (w - dw) / 2;
-      const dy = (h - dh) / 2;
-
       c.filter = `blur(${config.bgBlur}px)`;
-      c.drawImage(image, dx, dy, dw, dh);
+      c.drawImage(scratch, 0, 0, w, h);
+      c.filter = "none";
 
-      // Tilt-shift: a heavily blurred copy, masked away inside the focus band.
       if (config.blurType === "tilt" && config.blurAmount > 0) {
         const t = tintCtx;
         t.setTransform(1, 0, 0, 1, 0, 0);
-        t.clearRect(0, 0, tint.width, tint.height);
+        t.clearRect(0, 0, tintC.width, tintC.height);
         t.save();
-        const dpr = tint.width / w;
-        t.scale(dpr, dpr);
         t.filter = `blur(${config.blurAmount * 0.4}px)`;
-        t.drawImage(image, dx, dy, dw, dh);
+        t.drawImage(scratch, 0, 0);
         t.filter = "none";
 
         // Erase the in-focus band out of the blurred copy.
-        const centre = (config.tiltPosition / 100) * h;
-        const half = ((config.tiltFocus / 100) * h) / 2;
-        const feather = (config.tiltFeather / 100) * h;
+        const dpr = tintC.height / h;
+        const centre = (config.tiltPosition / 100) * h * dpr;
+        const half = ((config.tiltFocus / 100) * h * dpr) / 2;
+        const feather = (config.tiltFeather / 100) * h * dpr;
+        const span = 2 * (half + feather);
         const g = t.createLinearGradient(0, centre - half - feather, 0, centre + half + feather);
         g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(feather / (2 * (half + feather)), "rgba(0,0,0,0)");
-        g.addColorStop(1 - feather / (2 * (half + feather)), "rgba(0,0,0,0)");
+        g.addColorStop(feather / span, "rgba(0,0,0,0)");
+        g.addColorStop(1 - feather / span, "rgba(0,0,0,0)");
         g.addColorStop(1, "rgba(0,0,0,1)");
         t.globalCompositeOperation = "destination-in";
         t.fillStyle = g;
-        t.fillRect(0, 0, w, h);
+        t.fillRect(0, 0, tintC.width, tintC.height);
         t.restore();
 
-        c.filter = "none";
-        c.drawImage(tint, 0, 0, w, h);
+        c.drawImage(tintC, 0, 0, w, h);
       }
-
-      c.filter = "none";
       c.restore();
     }
 
-    /* --- Post-effects --- */
-    function drawFilmDust(w: number, h: number, seedTime: number) {
+    function drawFilmDust(w: number, h: number, seconds: number) {
       const c = ctx!;
       const n = Math.round((config.pfx.filmDust.intensity / 100) * 60);
-      // Reseeded a few times a second so it flickers like a projector, not 60fps hash.
-      let seed = Math.floor(seedTime * 6) * 9301;
+      // Reseeded a few times a second, so it flickers like a projector gate
+      // rather than hashing anew at 60fps.
+      let seed = Math.floor(seconds * 6) * 9301;
       const rnd = () => {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
@@ -190,36 +266,33 @@ export function AsciiBackground({
         const x = rnd() * w;
         const y = rnd() * h;
         const r = rnd();
-        c.globalAlpha = 0.10 + r * 0.22;
+        c.globalAlpha = 0.1 + r * 0.22;
         c.fillStyle = r > 0.6 ? "#fff" : "#000";
-        if (r > 0.85) c.fillRect(x, y, 1, 3 + r * 10); // hair
-        else c.fillRect(x, y, 1 + r, 1 + r); // speck
+        if (r > 0.85) c.fillRect(x, y, 1, 3 + r * 10);
+        else c.fillRect(x, y, 1 + r, 1 + r);
       }
       c.restore();
     }
 
     function render(now: number) {
-      if (stopped || !canvas || !image) return;
+      if (stopped || !canvas || !ready) return;
       const c = ctx!;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+      const dpr = canvas.width / w;
       const t = now / 1000;
 
-      c.setTransform(
-        canvas.width / w,
-        0,
-        0,
-        canvas.width / w,
-        0,
-        0,
-      );
+      readScroll();
+
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, w, h);
       drawBackground(w, h);
 
       /* --- Glyph layer --- */
-      layerCtx.setTransform(layer.width / w, 0, 0, layer.width / w, 0, 0);
       layerCtx.clearRect(0, 0, w, h);
 
+      const fa = fields[sceneA];
+      const fb = fields[sceneB];
       const animOn = config.animated && !reduceMotion;
       const speed = (config.animSpeed.intensity / 100) * 1.6;
       const amp = (config.animIntensity.intensity / 100) * 0.16;
@@ -227,7 +300,8 @@ export function AsciiBackground({
 
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          let v = lum[y * cols + x];
+          const i = y * cols + x;
+          let v = fa[i] + (fb[i] - fa[i]) * mix;
 
           // shimmer: a wave travelling diagonally through the luminance field
           if (animOn) v += Math.sin(t * speed + (x + y) * 0.28) * amp;
@@ -253,21 +327,21 @@ export function AsciiBackground({
       }
       layerCtx.globalAlpha = 1;
 
-      /* --- Chromatic aberration: composite the finished layer, not the glyphs --- */
+      /* --- Chromatic aberration: composite the layer, not the glyphs --- */
       const ca = config.pfx.chromatic;
       if (ca.enabled) {
         const d = (ca.intensity / 100) * 3;
         const paint = (colour: string, dx: number) => {
           const tc = tintCtx;
           tc.setTransform(1, 0, 0, 1, 0, 0);
-          tc.clearRect(0, 0, tint.width, tint.height);
+          tc.clearRect(0, 0, tintC.width, tintC.height);
           tc.drawImage(layer, 0, 0);
           tc.globalCompositeOperation = "source-in";
           tc.fillStyle = colour;
-          tc.fillRect(0, 0, tint.width, tint.height);
+          tc.fillRect(0, 0, tintC.width, tintC.height);
           tc.globalCompositeOperation = "source-over";
           c.globalAlpha = 0.55;
-          c.drawImage(tint, dx, 0, w, h);
+          c.drawImage(tintC, dx, 0, w, h);
           c.globalAlpha = 1;
         };
         paint("#ff2d2d", -d);
@@ -275,7 +349,6 @@ export function AsciiBackground({
       }
       c.drawImage(layer, 0, 0, w, h);
 
-      /* --- Halftone --- */
       const ht = config.pfx.halftone;
       if (ht.enabled) {
         c.save();
@@ -291,17 +364,21 @@ export function AsciiBackground({
       raf = requestAnimationFrame(render);
     }
 
-    const img = new Image();
-    img.onload = () => {
-      image = img;
-      resize();
-      raf = requestAnimationFrame(render);
-    };
-    img.src = src;
+    let loaded = 0;
+    sources.forEach((src, i) => {
+      const img = new Image();
+      img.onload = () => {
+        images[i] = img;
+        if (++loaded === sources.length) {
+          ready = true;
+          resize();
+          raf = requestAnimationFrame(render);
+        }
+      };
+      img.src = src;
+    });
 
-    const onResize = () => {
-      resize();
-    };
+    const onResize = () => resize();
     window.addEventListener("resize", onResize);
 
     return () => {
@@ -309,7 +386,7 @@ export function AsciiBackground({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
     };
-  }, [src, config]);
+  }, [sources, trackSelector, config]);
 
   return (
     <canvas

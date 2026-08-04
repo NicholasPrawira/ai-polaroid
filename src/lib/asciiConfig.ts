@@ -22,6 +22,18 @@ export const ASCII_FOREST = {
 
   brightness: 0,
   contrast: 128,
+  /**
+   * Pulls the midtones down. The preset ships an identity curve because it was
+   * authored against a photograph; these scenes are lighter and flatter, and
+   * without this most of the frame lands above the glyph threshold and simply
+   * isn't drawn.
+   */
+  toneCurve: [
+    { x: 0, y: 0 },
+    { x: 0.45, y: 0.24 },
+    { x: 0.8, y: 0.66 },
+    { x: 1, y: 1 },
+  ],
   edgeEmphasis: 0,
   density: 0,
 
