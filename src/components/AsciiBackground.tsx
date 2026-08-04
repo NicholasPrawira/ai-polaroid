@@ -28,7 +28,7 @@ import { ASCII_FOREST, CHAR_SETS, AsciiConfig } from "@/lib/asciiConfig";
  */
 
 export const SCENES = [
-  "/scene-travel.png",
+  "/scene-travel1.jpg",
   "/scene-reunion.png",
   "/scene-road-trip.png",
   "/scene-graduation.png",
@@ -184,6 +184,22 @@ export function AsciiBackground({
           v = curve(v < 0 ? 0 : v > 1 ? 1 : v);
           f[i] = v < 0 ? 0 : v > 1 ? 1 : v;
         }
+        // edgeEmphasis: a cheap gradient magnitude, subtracted so that edges
+        // land on denser glyphs.
+        const edge = config.edgeEmphasis / 100;
+        if (edge > 0) {
+          const src = Float32Array.from(f);
+          for (let y = 1; y < rows - 1; y++) {
+            for (let x = 1; x < cols - 1; x++) {
+              const i = y * cols + x;
+              const gx = Math.abs(src[i + 1] - src[i - 1]);
+              const gy = Math.abs(src[i + cols] - src[i - cols]);
+              const g = Math.min(1, (gx + gy) * 1.6);
+              f[i] = Math.max(0, src[i] - g * edge);
+            }
+          }
+        }
+
         return f;
       });
     }

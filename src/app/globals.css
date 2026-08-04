@@ -285,7 +285,7 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.62;
+  opacity: 0.8;
 }
 
 /* Legibility scrim. The ASCII field is dense by design, and the hero type has
@@ -297,10 +297,10 @@ body {
   inset: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-surface) 45%, transparent) 0%,
-    color-mix(in srgb, var(--color-surface) 70%, transparent) 22%,
-    color-mix(in srgb, var(--color-surface) 70%, transparent) 82%,
-    color-mix(in srgb, var(--color-surface) 45%, transparent) 100%
+    color-mix(in srgb, var(--color-surface) 30%, transparent) 0%,
+    color-mix(in srgb, var(--color-surface) 68%, transparent) 20%,
+    color-mix(in srgb, var(--color-surface) 68%, transparent) 84%,
+    color-mix(in srgb, var(--color-surface) 30%, transparent) 100%
   );
 }
 
@@ -484,7 +484,7 @@ body {
   margin: 0;
   font-size: 15px;
   line-height: 1.6;
-  opacity: 0.62;
+  opacity: 0.8;
 }
 
 /* --- Footer --- */
@@ -506,7 +506,7 @@ body {
 
 .landing-footer p {
   margin: 0;
-  opacity: 0.62;
+  opacity: 0.8;
 }
 
 .landing-footer a {

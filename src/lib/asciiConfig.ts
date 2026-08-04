@@ -34,7 +34,13 @@ export const ASCII_FOREST = {
     { x: 0.8, y: 0.66 },
     { x: 1, y: 1 },
   ],
-  edgeEmphasis: 0,
+  /**
+   * Darkens cells where luminance changes fast, which is what makes structure
+   * legible in a photograph whose subject is one broad tone. A hillside of
+   * grass has almost no luminance range once desaturated; its ridges and paths
+   * are edges, not tones, and without this they render as an even field.
+   */
+  edgeEmphasis: 55,
   density: 0,
 
   saturation: 0,
