@@ -31,7 +31,7 @@ export const SCENES = [
   "/scene-travel1.jpg",
   "/scene-reunion1.jpg",
   "/scene-road-trip.png",
-  "/scene-graduation.png",
+  "/scene-graduation.jpg",
   "/scene-hangout.png",
   "/scene-concert.png",
   "/scene-first-date.png",
