@@ -39,16 +39,16 @@ export type FilmParams = {
 };
 
 export const DEFAULT_PARAMS: Omit<FilmParams, "seed"> = {
-  grain: 0.5,
-  cast: 0.55,
-  crush: 0.18,
-  bloom: 0.35,
-  vignette: 0.45,
-  aberration: 0.35,
-  softness: 0.4,
+  grain: 0.62,
+  cast: 0.95,
+  crush: 0.42,
+  bloom: 0.45,
+  vignette: 0.6,
+  aberration: 0.4,
+  softness: 0.45,
   dust: 0.22,
-  falloff: 0.5,
-  saturation: 0.92,
+  falloff: 0.85,
+  saturation: 0.78,
 };
 
 const VERT = `#version 300 es
@@ -119,26 +119,31 @@ void main() {
   }
 
   /* --- Tone curve: crushed blacks, softly rolled-off whites --- */
-  col = max(col - u_crush * 0.16, 0.0) / max(1.0 - u_crush * 0.16, 0.001);
+  col = max(col - u_crush * 0.22, 0.0) / max(1.0 - u_crush * 0.22, 0.001);
   col = 1.0 - pow(max(1.0 - col, 0.0), vec3(1.18));
-  col = mix(col, col * col * (3.0 - 2.0 * col), 0.22); // gentle S-curve
+  col = mix(col, col * col * (3.0 - 2.0 * col), 0.42); // S-curve, not gentle
 
   /* --- Analogue colour science ---
      Shadows drift olive, highlights drift warm yellow, reds lift slightly,
      blues get muted. Kodak Gold under a direct flash, roughly. */
   float l = luma(col);
-  vec3 shadowTint    = vec3(-0.028, 0.045, -0.042);
-  vec3 highlightTint = vec3( 0.045, 0.028, -0.05);
+  vec3 shadowTint    = vec3(-0.045, 0.070, -0.075);
+  vec3 highlightTint = vec3( 0.085, 0.052, -0.095);
   col += shadowTint    * (1.0 - smoothstep(0.0, 0.55, l)) * u_cast;
   col += highlightTint * smoothstep(0.35, 1.0, l)         * u_cast;
-  col.r *= 1.0 + 0.05 * u_cast;
-  col.b *= 1.0 - 0.06 * u_cast;
+  col.r *= 1.0 + 0.07 * u_cast;
+  col.b *= 1.0 - 0.16 * u_cast;
 
   col = mix(vec3(luma(col)), col, u_saturation);
 
-  /* --- Flash falloff: whatever the flash didn't reach drops away --- */
+  /* --- Flash falloff: whatever the flash didn't reach drops away.
+         The range reaches well into the midtones, because an indoor frame is
+         mostly midtones — clamping this to near-black does nothing at all. --- */
   float lf = luma(col);
-  col *= mix(1.0 - u_falloff * 0.5, 1.0, smoothstep(0.10, 0.62, lf));
+  float lit = smoothstep(0.20, 0.88, lf);
+  col *= mix(1.0 - u_falloff * 0.62, 1.0, lit);
+  // ...and what the flash *did* reach gets pushed up, so the subject separates.
+  col += col * pow(lit, 2.0) * u_falloff * 0.18;
 
   /* --- Vignette --- */
   col *= 1.0 - smoothstep(0.20, 1.05, r) * u_vignette;
@@ -148,9 +153,12 @@ void main() {
   if (u_grain > 0.001) {
     float lum = luma(col);
     float weight = 1.0 - abs(lum * 2.0 - 1.0);
-    float n = hash(uv * 1400.0 + u_seed) - 0.5;
-    float nc = hash(uv * 1400.0 + u_seed + 7.3) - 0.5; // slight colour speckle
-    col += (n * 0.85 + nc * 0.15) * u_grain * 0.16 * weight;
+    // Coarse on purpose: fine grain averages itself away the moment the photo
+    // is displayed smaller than it was rendered.
+    float n = hash(floor(uv * 620.0) + u_seed) - 0.5;
+    float nf = hash(uv * 1600.0 + u_seed + 3.1) - 0.5;
+    float nc = hash(floor(uv * 620.0) + u_seed + 7.3) - 0.5;
+    col += (n * 0.6 + nf * 0.25 + nc * 0.15) * u_grain * 0.3 * weight;
   }
 
   /* --- Dust specks and hairline scratches from a dirty scanner --- */
