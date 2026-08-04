@@ -14,8 +14,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. `getUserMedia` needs a secure context, so use
-`localhost` (not a LAN IP) in development — production on Vercel is HTTPS already.
+Open http://localhost:3000 for the landing page; the camera itself lives at
+`/camera`. `getUserMedia` needs a secure context, so use `localhost` (not a LAN
+IP) in development — production on Vercel is HTTPS already.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
@@ -27,6 +28,10 @@ Image-capable models are only listed when you filter for them —
 
 ## How it works
 
+- `src/app/page.tsx` — landing page. The scrolling word hero is pure CSS: a
+  sticky list whose words each carry a `background-attachment: fixed` gradient
+  clipped to their glyphs, so a stationary highlight band appears to travel
+  through them. No scroll listeners, no measurement, no JavaScript.
 - `src/lib/useCamera.ts` — opens the stream, centre-crops a 1024px square JPEG.
 - `src/app/api/develop/route.ts` — posts the capture to OpenRouter's Image API as
   an `input_references` entry, returns the developed photo as a data URL.

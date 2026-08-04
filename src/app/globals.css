@@ -258,3 +258,271 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Landing page
+
+   The hero is one idea: a sticky list that scrolls past a fixed
+   highlight band. Each word carries a `background-attachment: fixed`
+   gradient clipped to its own glyphs, so the band appears to travel
+   through the words while it is really the page moving. Sticky
+   positioning holds the block until every word has passed.
+
+   No JavaScript, no scroll listeners, no measurement.
+   ============================================================ */
+
+.landing {
+  --band: 50vh; /* where the highlight sits */
+  --dim: color-mix(in oklch, var(--color-on-surface), transparent 78%);
+}
+
+.landing-hero {
+  position: sticky;
+  /* Pull the block up by one line per extra word, so the list scrolls
+     through the band instead of leaving with the page. */
+  top: calc((var(--count) - 1) * -1lh);
+  display: flex;
+  align-items: start;
+  width: 100%;
+  margin-bottom: 50vh;
+  line-height: 1.2;
+  font-size: clamp(2rem, 9vw, 5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.landing-hero-inner {
+  display: flex;
+  width: 100%;
+  align-items: start;
+  justify-content: center;
+  padding-top: calc(var(--band) - 0.5lh);
+}
+
+.landing-hero h1 {
+  position: sticky;
+  top: calc(var(--band) - 0.5lh);
+  margin: 0;
+  font: inherit;
+  color: var(--color-on-surface);
+}
+
+.landing-hero ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-hero li {
+  color: var(--dim);
+}
+
+/* Only hide the text behind a gradient where clipping is actually
+   supported — otherwise the words would vanish entirely. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .landing-hero li {
+    background: linear-gradient(
+      180deg,
+      var(--dim) 0 calc(var(--band) - 0.5lh),
+      var(--color-film-amber) calc(var(--band) - 0.55lh)
+        calc(var(--band) + 0.55lh),
+      var(--dim) calc(var(--band) + 0.5lh)
+    );
+    background-attachment: fixed;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+}
+
+/* --- The dark panel that slides up over the hero --- */
+
+.landing-reveal {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 100svh;
+  color: var(--color-on-darkroom);
+}
+
+.landing-reveal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-darkroom);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.landing-reveal section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  min-height: 100svh;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.landing-pitch {
+  margin: 0;
+  font-size: clamp(1.35rem, 4.5vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  border-radius: var(--radius-md);
+  background: var(--color-on-darkroom);
+  color: var(--color-darkroom);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: transform 120ms ease;
+}
+.landing-cta:active {
+  transform: scale(0.98);
+}
+
+.landing-note {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+/* --- Steps --- */
+
+.landing-steps {
+  position: relative;
+  z-index: 2;
+  background: var(--color-darkroom);
+  color: var(--color-on-darkroom);
+  padding: 0 1.5rem 4rem;
+}
+
+.landing-steps ol {
+  display: grid;
+  gap: 2.5rem;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .landing-steps ol {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+  }
+}
+
+.landing-steps li {
+  border-top: 1px solid rgb(255 255 255 / 0.14);
+  padding-top: 1.25rem;
+}
+
+.landing-step-n {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  opacity: 0.4;
+}
+
+.landing-steps h2 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.landing-steps p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  opacity: 0.62;
+}
+
+/* --- Footer --- */
+
+.landing-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--color-darkroom);
+  color: var(--color-on-darkroom);
+  padding: 2rem 1.5rem max(2rem, env(safe-area-inset-bottom));
+  border-top: 1px solid rgb(255 255 255 / 0.14);
+  font-size: 13px;
+}
+
+.landing-footer p {
+  margin: 0;
+  opacity: 0.5;
+}
+
+.landing-footer a {
+  color: var(--color-film-amber-bright);
+  text-decoration: none;
+}
+.landing-footer a:hover {
+  text-decoration: underline;
+}
+
+/* --- Progressive enhancement: the panel grows as it scrolls in --- */
+
+@supports (animation-timeline: view()) {
+  .landing-reveal {
+    view-timeline: --panel;
+  }
+  .landing-reveal::before {
+    transform-origin: 50% 100%;
+    scale: 0.92;
+    animation: landing-grow both ease-in-out;
+    animation-timeline: --panel;
+    animation-range: entry 55%;
+  }
+  .landing-reveal section {
+    animation: landing-fade both ease-in-out;
+    animation-timeline: --panel;
+    animation-range: entry 55%;
+  }
+  @keyframes landing-grow {
+    to {
+      scale: 1;
+      border-radius: 0;
+    }
+  }
+  @keyframes landing-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@utility sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

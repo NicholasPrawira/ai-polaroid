@@ -1,135 +1,88 @@
-"use client";
+import Link from "next/link";
+import type { Metadata } from "next";
 
-import { useCallback, useState } from "react";
-import { CameraScreen } from "@/components/CameraScreen";
-import { ProcessingScreen } from "@/components/ProcessingScreen";
-import { ResultScreen } from "@/components/ResultScreen";
-import { GalleryScreen } from "@/components/GalleryScreen";
-import { TabBar } from "@/components/Chrome";
-import { Folder, Screen, Shot } from "@/lib/types";
-import { useDevelop } from "@/lib/useDevelop";
+export const metadata: Metadata = {
+  title: "AI Disposable Camera",
+  description:
+    "Point, shoot, wait. Your photo comes back looking like it spent twenty years in a drawer.",
+};
 
-export default function Home() {
-  const [screen, setScreen] = useState<Screen>("camera");
-  // Session-only, in memory. Refreshing clears everything, by design (PRD 5.5).
-  const [shots, setShots] = useState<Shot[]>([]);
-  const [current, setCurrent] = useState<Shot | null>(null);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [source, setSource] = useState<string | null>(null);
+/* The words scroll through a fixed highlight band, lighting up one at a time.
+   Server-rendered — the whole effect is sticky positioning plus a fixed-
+   attachment gradient clipped to the text. No JavaScript involved. */
+const WORDS = ["point.", "shoot.", "wait.", "develop.", "remember."];
 
-  // Promote a finished develop into a print.
-  const handleComplete = useCallback((image: string) => {
-    const shot: Shot = {
-      id: Math.random().toString(36).slice(2, 10),
-      imageUrl: image,
-      createdAt: Date.now(),
-      folderId: null,
-    };
-    setShots((prev) => [shot, ...prev]);
-    setCurrent(shot);
-    setScreen("result");
-  }, []);
+const STEPS = [
+  {
+    n: "01",
+    title: "Shoot without looking",
+    body: "A viewfinder, a shutter, a self-timer. No filters to preview, no grid of options — you frame it and you commit, the way a single-use camera makes you.",
+  },
+  {
+    n: "02",
+    title: "Wait for it to develop",
+    body: "The photo goes dark and clears slowly while the film emulation runs. Seven seconds you can't skip. That pause is the point.",
+  },
+  {
+    n: "03",
+    title: "Keep what mattered",
+    body: "File shots into folders you name yourself — Japan 2026, Nico Wedding — or save them straight to your device.",
+  },
+];
 
-  const { state, progress, start, cancel } = useDevelop(handleComplete);
-
-  const handleCapture = useCallback(
-    (dataUrl: string) => {
-      setSource(dataUrl);
-      setScreen("processing");
-      start(dataUrl);
-    },
-    [start],
-  );
-
-  const handleCancel = useCallback(() => {
-    cancel();
-    setSource(null);
-    setScreen("camera");
-  }, [cancel]);
-
-  const handleRetry = useCallback(() => {
-    if (source) start(source);
-  }, [source, start]);
-
-  const handleCreateFolder = useCallback((name: string) => {
-    const folder: Folder = {
-      id: Math.random().toString(36).slice(2, 10),
-      name,
-      createdAt: Date.now(),
-    };
-    setFolders((prev) => [...prev, folder]);
-    return folder.id;
-  }, []);
-
-  const handleFile = useCallback((shotId: string, folderId: string | null) => {
-    const patch = (s: Shot): Shot => (s.id === shotId ? { ...s, folderId } : s);
-    setShots((prev) => prev.map(patch));
-    setCurrent((prev) => (prev && prev.id === shotId ? patch(prev) : prev));
-  }, []);
-
-  const handleNewPhoto = useCallback(() => {
-    setSource(null);
-    setScreen("camera");
-  }, []);
-
-  if (screen === "processing" && source) {
-    return (
-      <main className="paper grain flex min-h-dvh flex-col">
-        <ProcessingScreen
-          source={source}
-          progress={progress}
-          error={state.status === "error" ? state.message : null}
-          onCancel={handleCancel}
-          onRetry={handleRetry}
-        />
-      </main>
-    );
-  }
-
+export default function Landing() {
   return (
-    <main className="paper grain flex min-h-dvh flex-col">
-      <div className="grain-layer" />
-      <div className="relative z-2 flex min-h-dvh flex-col">
-        {screen === "camera" && (
-          <CameraScreen
-            onCapture={handleCapture}
-            lastShot={shots[0] ?? null}
-            photoCount={shots.length}
-            folderCount={folders.length}
-          />
-        )}
+    <div className="landing" style={{ ["--count" as string]: WORDS.length }}>
+      <header className="landing-hero">
+        <div className="landing-hero-inner">
+          <h1>
+            <span aria-hidden="true">you can&nbsp;</span>
+            <span className="sr-only">
+              You can point, shoot, wait, develop, remember.
+            </span>
+          </h1>
+          <ul aria-hidden="true">
+            {WORDS.map((word) => (
+              <li key={word}>{word}</li>
+            ))}
+          </ul>
+        </div>
+      </header>
 
-        {screen === "result" && current && (
-          <ResultScreen
-            shot={current}
-            folders={folders}
-            onNewPhoto={handleNewPhoto}
-            onFile={handleFile}
-            onCreateFolder={handleCreateFolder}
-            photoCount={shots.length}
-            folderCount={folders.length}
-          />
-        )}
+      <main className="landing-reveal">
+        <section>
+          <p className="landing-pitch">
+            and it comes back looking like
+            <br />
+            it spent twenty years in a drawer.
+          </p>
+          <Link href="/camera" className="landing-cta">
+            Open the camera
+          </Link>
+          <p className="landing-note">
+            no account · nothing uploaded twice · works in the browser
+          </p>
+        </section>
+      </main>
 
-        {screen === "gallery" && (
-          <GalleryScreen
-            shots={shots}
-            folders={folders}
-            onSelect={(shot) => {
-              setCurrent(shot);
-              setScreen("result");
-            }}
-            photoCount={shots.length}
-            folderCount={folders.length}
-          />
-        )}
+      <section className="landing-steps">
+        <ol>
+          {STEPS.map((step) => (
+            <li key={step.n}>
+              <span className="landing-step-n">{step.n}</span>
+              <h2>{step.title}</h2>
+              <p>{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        <TabBar
-          screen={screen}
-          onSelect={setScreen}
-          hasResult={current !== null}
-        />
-      </div>
-    </main>
+      <footer className="landing-footer">
+        <p>
+          Photos are developed by an image model and never stored on a server.
+        </p>
+        <Link href="/camera">Open the camera →</Link>
+      </footer>
+    </div>
   );
 }
