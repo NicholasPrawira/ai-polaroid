@@ -22,18 +22,6 @@ const WORDS = [
   "Everyday Moments",
 ];
 
-const STEPS = [
-  {
-    n: "01",
-    title: "Point and commit",
-    body: "A viewfinder, a shutter, a self-timer — and nothing else. No filter to preview, no shot to retake. You frame it once, the way a single-use camera makes you.",
-  },
-  {
-    n: "02",
-    title: "Wait for it to develop",
-    body: "The frame sits dark and clears slowly while the film runs. A few seconds you can't skip. Every camera worth using made you wait for something.",
-  },
-];
 export default function Landing() {
   return (
     <div className="landing" style={{ ["--count" as string]: WORDS.length }}>
@@ -73,18 +61,6 @@ export default function Landing() {
           </p>
         </section>
       </main>
-
-      <section className="landing-steps">
-        <ol>
-          {STEPS.map((step) => (
-            <li key={step.n}>
-              <span className="landing-step-n">{step.n}</span>
-              <h2>{step.title}</h2>
-              <p>{step.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
     </div>
   );
 }

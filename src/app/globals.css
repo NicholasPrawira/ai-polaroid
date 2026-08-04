@@ -374,7 +374,7 @@ body {
   justify-content: center;
   gap: 1.75rem;
   min-height: 100svh;
-  padding: 3rem 1.5rem;
+  padding: 3rem 1.5rem max(3rem, calc(3rem + env(safe-area-inset-bottom)));
   text-align: center;
 }
 
@@ -419,56 +419,6 @@ body {
 }
 .landing-signin a:hover {
   border-bottom-color: #1c1c1d;
-}
-
-/* --- Steps --- */
-
-.landing-steps {
-  position: relative;
-  z-index: 2;
-  background: #1c1c1d;
-  color: var(--color-on-darkroom);
-  padding: 0 1.5rem max(4rem, calc(4rem + env(safe-area-inset-bottom)));
-}
-
-.landing-steps ol {
-  display: grid;
-  gap: 2.5rem;
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: 0;
-  list-style: none;
-}
-
-@media (min-width: 40rem) {
-  .landing-steps ol {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 3rem;
-  }
-}
-
-.landing-steps li {
-  border-top: 1px solid rgb(255 255 255 / 0.14);
-  padding-top: 1.25rem;
-}
-
-.landing-step-n {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  opacity: 0.4;
-}
-
-.landing-steps h2 {
-  margin: 0.75rem 0 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.landing-steps p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  opacity: 0.8;
 }
 
 /* --- Progressive enhancement: the panel grows as it scrolls in --- */
