@@ -26,6 +26,12 @@ import { useTheme } from "@/lib/useTheme";
  * one at least tells you what it's waiting on.
  */
 
+/**
+ * Every develop costs $0.06 in inference, so quotas are the product, not a
+ * throttle. Unlimited is not offerable: one heavy user would outspend their own
+ * subscription within a week. Prices below carry roughly a third of margin at
+ * full usage, which is the least that survives a user who actually maxes out.
+ */
 const PLANS = [
   {
     id: "free",
@@ -34,7 +40,7 @@ const PLANS = [
     period: "forever",
     current: true,
     features: [
-      "10 AI develops per day",
+      "10 AI develops per month",
       "Photos kept for the session only",
       "Unlimited folders",
       "Save to your device",
@@ -43,11 +49,11 @@ const PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: "$4",
+    price: "$9",
     period: "per month",
     current: false,
     features: [
-      "Unlimited AI develops",
+      "100 AI develops per month",
       "Photos backed up and synced",
       "Shared folders for events",
       "Full-resolution export",
@@ -182,8 +188,9 @@ export function UserButton({
                 ))}
 
                 <p className="type-viewfinder-label pt-1 leading-4 text-[var(--color-on-surface-variant)] opacity-60">
-                  Prices and limits are placeholders — nothing is charged, and no
-                  payment provider is connected.
+                  Each develop costs $0.06 to run, so quotas are the product
+                  rather than a throttle. Prices are a sketch — nothing is
+                  charged, and no payment provider is connected.
                 </p>
               </div>
             ) : (
@@ -235,7 +242,7 @@ export function UserButton({
                   <span className="min-w-0 flex-1">
                     <span className="type-body-md block">Upgrade to Pro</span>
                     <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
-                      on Free — 10 develops a day
+                      on Free — 10 develops a month
                     </span>
                   </span>
                   <ChevronRightIcon />

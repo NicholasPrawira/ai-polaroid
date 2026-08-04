@@ -62,6 +62,10 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Prompt secara eksplisit melarang model menambah border, teks, watermark, maupun date stamp.
 - Foto capture dikirim sebagai `input_references` (base64 data URL) bersama prompt disposable.
 - Model default: `x-ai/grok-imagine-image-quality` (Grok Imagine, `text+image->image`).
+- **Biaya nyata: ~$0,06 per foto** (terukur dari tagihan, bukan dari field pricing API
+  yang menampilkan $0,01). Ini angka penting: untuk dipakai sendiri masih ringan, tapi
+  begitu app dibuka ke orang lain, kuota harus jadi bagian dari desain produk sejak
+  awal — bukan ditambahkan belakangan. Album acara 600 foto = $36.
 - Nama model disimpan di environment variable (`OPENROUTER_IMAGE_MODEL`), supaya bisa ditukar/dibandingkan tanpa ubah kode.
 - Opsional: AI generate variasi kecil tiap kali (biar hasil tidak selalu identik/predictable, mirip randomness film asli).
 
@@ -102,7 +106,12 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
   Privacy & data, Sign out — dan toggle light/dark mode.
 - Sub-layar **Plans**: dua tier (Free / Pro) beserta daftar fiturnya.
 - **Tidak ada satu pun yang berfungsi.** Belum ada auth, belum ada payment provider.
-  Angka harga dan batas kuota adalah placeholder, bukan penawaran.
+  Angka harga adalah sketsa, bukan penawaran — tapi kuotanya dihitung dari biaya nyata
+  $0,06/foto: Free 10/bulan (biaya $0,60), Pro $9/bulan untuk 100 develop (biaya $6,
+  margin ~33% saat dipakai penuh).
+- **Tier "unlimited" tidak bisa ditawarkan.** Satu user berat akan menghabiskan nilai
+  langganannya sendiri dalam hitungan hari. Di produk ini kuota adalah produknya,
+  bukan sekadar pembatas.
 - **Setiap item yang belum jalan menjelaskan dirinya saat ditekan** — bukan diam
   saja. Tombol mati yang tidak merespons terbaca sebagai bug; tombol yang bilang
   "fitur ini menunggu sistem akun" terbaca sebagai rencana.
