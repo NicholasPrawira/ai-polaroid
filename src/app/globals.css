@@ -272,9 +272,9 @@ body {
    ============================================================ */
 
 .landing {
-  /* Where the highlight band sits. Above centre reads better here — the eye
-     lands on the words first, and the list below them stays in view longer. */
-  --band: 38vh;
+  /* Where the highlight band sits. Capped in rem as well as vh: on a tall
+     screen a bare 38vh becomes 500-odd pixels of empty space above the words. */
+  --band: min(34vh, 15rem);
   --dim: color-mix(in oklch, var(--color-on-surface), transparent 78%);
 }
 
@@ -286,7 +286,9 @@ body {
   display: flex;
   align-items: start;
   width: 100%;
-  margin-bottom: 50vh;
+  /* Runway for the list to scroll through before the panel arrives. Capped for
+     the same reason as --band. */
+  margin-bottom: min(42vh, 20rem);
   line-height: 1.2;
   /* Sized so the longest pairing — "Capture your Everyday Moments" — still fits
      on one line at 390px. Wrapping would be fatal, not just ugly: the sticky
