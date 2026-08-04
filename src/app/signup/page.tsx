@@ -9,6 +9,7 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Create an account"
+      image="/scene-travel1.jpg"
       footer={
         <>
           Already have an account?{" "}

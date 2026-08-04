@@ -15,6 +15,7 @@ export default async function LoginPage({
   return (
     <AuthShell
       title="Sign in"
+      image="/scene-everyday.jpg"
       footer={
         <>
           Don&apos;t have an account?{" "}
