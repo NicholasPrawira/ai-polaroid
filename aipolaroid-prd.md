@@ -41,11 +41,15 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Tombol shutter untuk capture foto (dengan opsi front/back camera kalau di mobile).
 - Preview foto sebelum diproses (retake option).
 
-### 5.1a Viewfinder HUD (dekoratif)
-- Viewfinder menampilkan overlay ala DSLR: shutter speed, aperture, ISO, exposure compensation, WB, drive mode, histogram, dan indikator REC.
-- **Ini murni dekorasi, bukan data nyata.** `getUserMedia` di browser tidak mengekspos shutter speed / aperture / ISO dari kamera HP, jadi angka-angka ini di-hardcode sebagai *fake instrumentation*.
-- Tujuannya estetis: memperkuat brand statement design system ("operating a high-end mechanical camera"). Angka yang statis adalah perilaku yang benar, bukan bug.
-- Garis framing guide (rule of thirds) tetap 1px charcoal tanpa fill, sesuai spec design system.
+### 5.1a Viewfinder HUD
+- Viewfinder menampilkan garis framing guide (rule of thirds) 1px tanpa fill sesuai
+  spec design system, corner bracket, dan satu indikator REC yang berkedip.
+- **Tidak ada readout angka.** Shutter speed, aperture, ISO, exposure compensation,
+  WB, dan histogram sempat ditampilkan lalu dihapus: `getUserMedia` tidak mengekspos
+  satu pun dari data itu, jadi semuanya angka karangan yang nilainya tidak pernah
+  berubah. Instrumen palsu yang beku lebih mengganggu daripada tidak ada instrumen.
+- Titik REC dipertahankan karena tidak mengklaim mengukur apa pun — dia cuma
+  menandakan kamera sedang hidup, dan itu memang benar.
 
 ### 5.1b Self-timer
 - Chip di header untuk cycle durasi self-timer: `OFF` → `3s` → `10s`.
