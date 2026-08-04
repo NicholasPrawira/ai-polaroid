@@ -34,6 +34,13 @@ export type Scene = {
   /** Which point of the source lands at the centre. 0 = left edge, 1 = right. */
   focusX?: number;
   focusY?: number;
+  /** Optional framing overrides for wider hero canvases. */
+  tabletZoom?: number;
+  tabletFocusX?: number;
+  tabletFocusY?: number;
+  desktopZoom?: number;
+  desktopFocusX?: number;
+  desktopFocusY?: number;
 };
 
 export const SCENES: Scene[] = [
@@ -41,9 +48,19 @@ export const SCENES: Scene[] = [
   // Same evening as Everyday Moments below, so it is framed wide on the whole
   // room while that one crops into the near group — otherwise the page shows
   // the identical picture twice.
-  { src: "/scene-reunion2.jpg", zoom: 1.45, focusX: 0.34 },
+  {
+    src: "/scene-reunion2.jpg",
+    zoom: 1.45,
+    focusX: 0.34,
+    tabletFocusY: 0.68,
+    desktopFocusY: 0.7,
+  },
   { src: "/scene-road-trip.png" },
-  { src: "/scene-graduation.jpg" },
+  {
+    src: "/scene-graduation.jpg",
+    tabletFocusY: 0.42,
+    desktopFocusY: 0.35,
+  },
   { src: "/scene-hangout.jpg" },
   { src: "/scene-concert.jpg", zoom: 1.25, focusX: 0.74, focusY: 0.62 },
   { src: "/scene-first-date.jpg", zoom: 1.15, focusY: 0.6 },
@@ -190,7 +207,7 @@ export function AsciiBackground({
         // Downscaling to one pixel per cell *is* the box average. The same
         // framing is applied here, or the glyphs would not line up with the
         // photograph behind them.
-        cover(sampleCtx, img, cols, rows, sources[si]);
+        cover(sampleCtx, img, cols, rows, sources[si], w);
         const d = sampleCtx.getImageData(0, 0, cols, rows).data;
         const f = new Float32Array(cols * rows);
         for (let i = 0; i < f.length; i++) {
@@ -229,19 +246,31 @@ export function AsciiBackground({
       w: number,
       h: number,
       scene: Scene,
+      viewportWidth = w,
     ) {
-      const s = Math.max(w / img.width, h / img.height) * (scene.zoom ?? 1);
+      const isDesktop = viewportWidth >= 1024;
+      const isTablet = viewportWidth >= 768;
+      const zoom =
+        (isDesktop ? scene.desktopZoom : undefined) ??
+        (isTablet ? scene.tabletZoom : undefined) ??
+        scene.zoom ??
+        1;
+      const focusX =
+        (isDesktop ? scene.desktopFocusX : undefined) ??
+        (isTablet ? scene.tabletFocusX : undefined) ??
+        scene.focusX ??
+        0.5;
+      const focusY =
+        (isDesktop ? scene.desktopFocusY : undefined) ??
+        (isTablet ? scene.tabletFocusY : undefined) ??
+        scene.focusY ??
+        0.5;
+      const s = Math.max(w / img.width, h / img.height) * zoom;
       const dw = img.width * s;
       const dh = img.height * s;
       // (w - dw) is negative once the image overflows, so a focus below 0.5
       // slides the frame toward the left of the source.
-      c.drawImage(
-        img,
-        (w - dw) * (scene.focusX ?? 0.5),
-        (h - dh) * (scene.focusY ?? 0.5),
-        dw,
-        dh,
-      );
+      c.drawImage(img, (w - dw) * focusX, (h - dh) * focusY, dw, dh);
     }
 
     function drawBackground(w: number, h: number, dpr: number) {

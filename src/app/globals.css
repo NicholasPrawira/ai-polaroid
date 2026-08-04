@@ -348,14 +348,14 @@ body {
   }
 }
 
-/* --- The dark panel that slides up over the hero --- */
+/* --- The bright panel that slides up over the hero --- */
 
 .landing-reveal {
   position: relative;
   z-index: 2;
   width: 100%;
   min-height: 100svh;
-  color: var(--color-on-darkroom);
+  color: #1c1c1d;
 }
 
 .landing-reveal::before {
@@ -363,7 +363,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: #1c1c1d;
+  background: #f3f0ef;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
@@ -393,8 +393,8 @@ body {
   justify-content: center;
   padding: 1rem 2rem;
   border-radius: var(--radius-md);
-  background: var(--color-on-darkroom);
-  color: var(--color-darkroom);
+  background: #1c1c1d;
+  color: #f3f0ef;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -407,18 +407,18 @@ body {
 
 .landing-signin {
   margin: 0;
+  color: rgb(28 28 29 / 0.58);
   font-size: 14px;
-  opacity: 0.55;
 }
 
 .landing-signin a {
-  color: var(--color-film-amber-bright);
+  color: #1c1c1d;
   text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-film-amber-bright) 40%, transparent);
+  border-bottom: 1px solid rgb(28 28 29 / 0.38);
   padding-bottom: 1px;
 }
 .landing-signin a:hover {
-  border-bottom-color: var(--color-film-amber-bright);
+  border-bottom-color: #1c1c1d;
 }
 
 /* --- Steps --- */
@@ -428,7 +428,7 @@ body {
   z-index: 2;
   background: #1c1c1d;
   color: var(--color-on-darkroom);
-  padding: 0 1.5rem 4rem;
+  padding: 0 1.5rem max(4rem, calc(4rem + env(safe-area-inset-bottom)));
 }
 
 .landing-steps ol {
@@ -469,36 +469,6 @@ body {
   font-size: 15px;
   line-height: 1.6;
   opacity: 0.8;
-}
-
-/* --- Footer --- */
-
-.landing-footer {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  background: #1c1c1d;
-  color: var(--color-on-darkroom);
-  padding: 2rem 1.5rem max(2rem, env(safe-area-inset-bottom));
-  border-top: 1px solid rgb(255 255 255 / 0.14);
-  font-size: 13px;
-}
-
-.landing-footer p {
-  margin: 0;
-  opacity: 0.8;
-}
-
-.landing-footer a {
-  color: var(--color-film-amber-bright);
-  text-decoration: none;
-}
-.landing-footer a:hover {
-  text-decoration: underline;
 }
 
 /* --- Progressive enhancement: the panel grows as it scrolls in --- */

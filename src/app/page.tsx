@@ -85,11 +85,6 @@ export default function Landing() {
           ))}
         </ol>
       </section>
-
-      <footer className="landing-footer">
-        <p>Developed by an image model. Never stored on a server.</p>
-        <Link href="/camera">Capture your moment →</Link>
-      </footer>
     </div>
   );
 }
