@@ -80,9 +80,11 @@ export function ProcessingScreen({
         </div>
       </div>
 
-      <div className="px-10 pb-[max(24px,env(safe-area-inset-bottom))]">
-        <div className="mb-5 h-px w-full bg-white/15" />
-        {error ? (
+      {/* Only drawn when there is something to draw: with the standing
+          instruction gone, a rule above empty space is just a stray line. */}
+      {error && (
+        <div className="px-10 pb-[max(24px,env(safe-area-inset-bottom))]">
+          <div className="mb-5 h-px w-full bg-white/15" />
           <button
             type="button"
             onClick={onRetry}
@@ -90,13 +92,8 @@ export function ProcessingScreen({
           >
             Try again
           </button>
-        ) : (
-          <p className="type-viewfinder-label mx-auto max-w-[34ch] text-center leading-4 opacity-45">
-            Please wait while the AI develops the film. Do not close the
-            application.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

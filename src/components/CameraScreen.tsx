@@ -18,6 +18,9 @@ import { AccountSummary, Shot } from "@/lib/types";
 /** Self-timer positions, cycled by tapping the chip. */
 const TIMER_STEPS = [0, 3, 10] as const;
 
+/** Must match `shutter-blackout` in globals.css. */
+const SHUTTER_MS = 280;
+
 export function CameraScreen({
   onCapture,
   lastShot,
@@ -57,9 +60,16 @@ export function CameraScreen({
   const shoot = useCallback(() => {
     const dataUrl = capture();
     if (!dataUrl) return;
+
     setFlashing(true);
-    timeoutRef.current = window.setTimeout(() => setFlashing(false), 420);
-    onCapture(dataUrl);
+    // The frame is already taken; only the handover waits. Calling onCapture
+    // straight away swaps in the develop screen in the same commit, which
+    // unmounts this one before the browser paints a single frame of the
+    // blackout — the animation was there all along and simply never showed.
+    timeoutRef.current = window.setTimeout(() => {
+      setFlashing(false);
+      onCapture(dataUrl);
+    }, SHUTTER_MS);
   }, [capture, onCapture]);
 
   function handleShutter() {
@@ -92,7 +102,9 @@ export function CameraScreen({
     }, 1000);
   }
 
-  const busy = !ready || !!error;
+  // Also busy through the blackout, so a second tap cannot fire a shutter that
+  // is still returning and queue up two develops from one moment.
+  const busy = !ready || !!error || flashing;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -163,7 +175,10 @@ export function CameraScreen({
               )}
 
               {flashing && (
-                <div className="animate-shutter absolute inset-0 z-30 bg-white" />
+                <div
+                  data-testid="shutter"
+                  className="animate-shutter absolute inset-0 z-30 bg-black"
+                />
               )}
             </>
           )}

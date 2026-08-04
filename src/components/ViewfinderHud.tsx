@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Framing guides plus a single REC indicator.
+ * Framing guides and corner brackets. Nothing else.
  *
  * The readouts a real camera would show — shutter, aperture, ISO, exposure
- * compensation, white balance, histogram — are deliberately absent.
- * getUserMedia exposes none of them, so any figure here would be invented and
- * permanently frozen. One blinking dot carries the same "this is a camera"
- * feeling without pretending to report anything.
+ * compensation, white balance, histogram — were removed because getUserMedia
+ * exposes none of them, so every figure was invented and permanently frozen.
+ * The blinking REC dot outlasted them for a while as the one piece of pure
+ * decoration, and has now gone the same way. What is left actually does
+ * something: the thirds guides help you frame the shot.
  */
 export function ViewfinderHud() {
   return (
@@ -26,10 +27,6 @@ export function ViewfinderHud() {
       <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-white/70" />
       <div className="absolute right-3 bottom-3 h-4 w-4 border-r border-b border-white/70" />
 
-      <div className="absolute right-4 bottom-3 flex items-center gap-1.5">
-        <span className="animate-rec block h-1.5 w-1.5 rounded-full bg-[var(--color-error)]" />
-        <span className="type-viewfinder-label opacity-85">rec</span>
-      </div>
     </div>
   );
 }
