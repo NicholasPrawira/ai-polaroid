@@ -9,13 +9,10 @@ import {
   CreditCardIcon,
   KeyIcon,
   LogOutIcon,
-  MoonIcon,
   ShieldIcon,
   SparkIcon,
-  SunIcon,
   UserIcon,
 } from "./Chrome";
-import { useTheme } from "@/lib/useTheme";
 
 /**
  * Account menu.
@@ -73,7 +70,6 @@ export function UserButton({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [pending, setPending] = useState<string | null>(null);
-  const { theme, toggle } = useTheme();
 
   function close() {
     setOpen(false);
@@ -264,21 +260,6 @@ export function UserButton({
                       </button>
                     </li>
                   ))}
-
-                  <li>
-                    <button
-                      type="button"
-                      onClick={toggle}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                    >
-                      <span className="text-[var(--color-on-surface-variant)]">
-                        {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-                      </span>
-                      <span className="type-body-md flex-1">
-                        {theme === "dark" ? "Light mode" : "Dark mode"}
-                      </span>
-                    </button>
-                  </li>
                 </ul>
               </>
             )}

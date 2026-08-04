@@ -72,7 +72,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 ### 5.3 Animasi "Reveal"
 - Animasi develop **dimulai saat capture, berjalan bersamaan dengan request AI** — bukan setelah hasil diterima. Waktu tunggu jadi bagian dari pengalaman, bukan dead time.
 - Progres animasi ditahan di ~85% kalau request AI belum selesai, lalu diselesaikan begitu hasil datang. Jadi animasi tidak pernah "selesai duluan" lalu menggantung.
-- Layar processing memakai tema gelap (`--color-darkroom`) sebagai metafora darkroom. Token ini sengaja tidak ikut berbalik saat dark mode aktif (lihat §5.6).
+- Layar processing memakai tema gelap (`--color-darkroom`) sebagai metafora darkroom.
 - Menampilkan estimasi waktu yang jujur (countdown), bukan spinner tanpa informasi.
 - Ada tombol Cancel untuk membatalkan request yang sedang berjalan.
 - Animasi dibuat pakai CSS (kemungkinan dibantu beberapa library animasi front-end untuk transisi yang lebih halus).
@@ -95,15 +95,25 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Satu foto berada di paling banyak satu folder (`folderId`, `null` = unsorted).
 - Tab gallery menampilkan foto-foto yang dibuat **selama sesi berjalan saja**, disimpan in-memory (React state).
 - **Foto tidak di-persist sama sekali** — refresh atau tutup tab = gallery kosong. Konsisten dengan §7 Storage: tidak ada server storage, dan foto tidak pernah masuk localStorage/IndexedDB.
-- Pengecualian yang bukan foto: preferensi light/dark mode disimpan di `localStorage` (§5.6). Ini setting UI, bukan data user.
 - Tampilan memakai rotasi ringan ±2 derajat (semangat Film Stack dari design system), tapi tanpa bingkai kertas.
 - User perlu diberi tahu secara halus bahwa foto tidak tersimpan permanen — save/download adalah satu-satunya cara menyimpan.
+
+### 5.6 Tema: gelap saja
+- **Tidak ada light mode.** App memakai satu palet gelap — di landing maupun di
+  seluruh layar aplikasi — dan tidak mengikuti preferensi OS.
+- Alasannya: efek ASCII di landing hanya terbaca di latar hitam, dan layar
+  processing memang harus gelap sejak awal (metafora darkroom). Menyediakan
+  varian terang berarti mengirim versi yang lebih buruk dari yang dipilih.
+- Toggle tema, hook `useTheme`, script anti-kedip, dan palet terang sudah dilepas.
+  Riwayat git menyimpannya kalau suatu saat dibutuhkan lagi.
+- Nilai warnanya tetap memakai hue netral dari design system, dengan tangga tonal
+  yang dibalik.
 
 ### 5.7 Account (kerangka UI, belum berfungsi)
 - Ikon user di kanan atas setiap layar membuka sheet Account.
 - Isinya: status "Not signed in" + tombol Sign in, jumlah foto & folder di sesi ini,
   kartu Upgrade to Pro, lalu daftar menu — Change password, Billing & invoices,
-  Privacy & data, Sign out — dan toggle light/dark mode.
+  Privacy & data, Sign out.
 - Sub-layar **Plans**: dua tier (Free / Pro) beserta daftar fiturnya.
 - **Tidak ada satu pun yang berfungsi.** Belum ada auth, belum ada payment provider.
   Angka harga adalah sketsa, bukan penawaran — tapi kuotanya dihitung dari biaya nyata
@@ -112,20 +122,11 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - **Tier "unlimited" tidak bisa ditawarkan.** Satu user berat akan menghabiskan nilai
   langganannya sendiri dalam hitungan hari. Di produk ini kuota adalah produknya,
   bukan sekadar pembatas.
-- **Setiap item yang belum jalan menjelaskan dirinya saat ditekan** — bukan diam
-  saja. Tombol mati yang tidak merespons terbaca sebagai bug; tombol yang bilang
-  "fitur ini menunggu sistem akun" terbaca sebagai rencana.
-- Menu ini dibuat lebih dulu sebagai kerangka untuk merancang bentuk produk.
-  Isinya baru bisa disambungkan setelah P0 di ROADMAP.md dikerjakan (auth + storage).
-- Setting ditaruh di sini supaya header kamera cuma berisi kontrol kamera.
-
-### 5.6 Light & Dark Mode
-- App mendukung light dan dark mode, di-toggle dari sheet Account (§5.7).
-- Default mengikuti preferensi OS (`prefers-color-scheme`); begitu user memilih manual, pilihannya disimpan di `localStorage` dan menang atas OS.
-- Script inline dijalankan sebelum paint pertama supaya tidak ada kedip tema salah saat load.
-- Palet dark diturunkan dari token light: hue netral dipertahankan, tangga tonalnya dibalik.
-- **Satu hal sengaja tidak ikut berbalik:**
-  - Layar processing (`--color-darkroom`) tetap gelap di kedua tema, karena metafora darkroom-nya bergantung pada itu.
+- **Setiap item yang belum jalan menjelaskan dirinya saat ditekan** — bukan diam saja.
+  Tombol mati yang tidak merespons terbaca sebagai bug; tombol yang bilang "fitur ini
+  menunggu sistem akun" terbaca sebagai rencana.
+- Menu ini dibuat lebih dulu sebagai kerangka untuk merancang bentuk produk. Isinya
+  baru bisa disambungkan setelah P0 di ROADMAP.md dikerjakan (auth + storage).
 
 ## 6. User Flow
 
@@ -134,14 +135,14 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 3. Foto diambil → preview sebentar → user konfirmasi (pakai foto ini / retake).
 4. Foto dikirim ke proses AI generation di background **dan animasi reveal langsung mulai bersamaan**.
 5. Layar processing (tema gelap) menampilkan foto yang develop bertahap + countdown. User bisa Cancel.
-6. Hasil AI datang → animasi diselesaikan → hasil akhir foto polaroid ditampilkan penuh.
+6. Hasil AI datang → animasi diselesaikan → hasil akhir foto ditampilkan penuh.
 7. User bisa save/download atau capture ulang.
 8. Foto masuk ke gallery sesi (hilang kalau di-refresh).
 
 ## 7. Technical Considerations
 
 - **Camera capture:** browser API (getUserMedia) untuk web, atau native camera API kalau dibuat sebagai app.
-- **AI processing:** model image-to-image lewat OpenRouter Image API (`input_references` + prompt) untuk transformasi foto capture jadi gaya polaroid.
+- **AI processing:** model image-to-image lewat OpenRouter Image API (`input_references` + prompt) untuk transformasi foto capture jadi gaya disposable.
 - **Animasi reveal:** dibuat pakai CSS (kemungkinan dibantu beberapa library animasi), **dijalankan bersamaan dengan request AI** dan ditahan di ~85% sampai hasil datang. Ini menggantikan pendekatan "jalankan setelah hasil diterima" yang sempat ditulis di draft awal.
 - **Frame:** tidak ada bingkai. Foto ditampilkan full-bleed dengan sudut membulat.
 - **Latency:** AI generation butuh ~10–40 detik. Loading state harus tetap immersive — animasi develop + countdown jujur, dengan opsi Cancel.

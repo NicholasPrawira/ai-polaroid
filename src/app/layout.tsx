@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Courier_Prime } from "next/font/google";
-import { NO_FLASH_SCRIPT } from "@/lib/useTheme";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,10 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcf9f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#131414" },
-  ],
+  themeColor: "#131414",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -40,11 +36,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${courierPrime.variable} h-full antialiased`}
-      suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
-      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

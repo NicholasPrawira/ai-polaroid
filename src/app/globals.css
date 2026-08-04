@@ -6,45 +6,17 @@
    ============================================================ */
 
 /* ------------------------------------------------------------
-   Palettes.
+   Palette.
 
-   Light is the design system's own values, verbatim. Dark is derived
-   from them: the neutral hues are kept and the tonal ladder inverted,
-   so it reads as the same camera body photographed in a dark room —
-   not as a different product.
+   One palette, dark. The app used to follow the OS and offer a toggle; it
+   doesn't any more. A camera that develops film has no business being bright,
+   and the landing's ASCII field only reads on black — shipping a light variant
+   would mean shipping a version that looks worse than the one we chose.
 
-   One thing deliberately does NOT invert:
-     --color-darkroom the processing screen stays dark in both themes,
-                      because the darkroom metaphor depends on it.
+   Values keep the design system's neutral hues; the tonal ladder is inverted.
    ------------------------------------------------------------ */
 
-:root,
-:root[data-theme="light"] {
-  --surface: #fcf9f8;
-  --surface-dim: #dcd9d9;
-  --surface-bright: #fcf9f8;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f6f3f2;
-  --surface-container: #f0eded;
-  --surface-container-high: #eae7e7;
-  --surface-container-highest: #e4e2e1;
-  --on-surface: #1b1c1c;
-  --on-surface-variant: #444748;
-  --inverse-surface: #303030;
-  --inverse-on-surface: #f3f0ef;
-  --outline: #747878;
-  --outline-variant: #c4c7c7;
-  --primary: #000000;
-  --on-primary: #ffffff;
-  --secondary: #5e5f5c;
-  --secondary-container: #e0e0dc;
-  --error: #ba1a1a;
-
-  --grain-opacity: 0.04;
-  --dot-color: #c4c7c7;
-}
-
-:root[data-theme="dark"] {
+:root {
   --surface: #131414;
   --surface-dim: #131414;
   --surface-bright: #393939;
@@ -67,6 +39,8 @@
 
   --grain-opacity: 0.06;
   --dot-color: #333637;
+
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -134,9 +108,6 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    background-color 220ms ease,
-    color 220ms ease;
 }
 
 /* ============================================================

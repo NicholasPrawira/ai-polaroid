@@ -123,7 +123,7 @@ export function GalleryScreen({
           >
             <ChevronLeftIcon />
           </button>
-          <h1 className="truncate text-center text-[17px] font-semibold">
+          <h1 className="min-w-0 truncate text-center text-[17px] font-semibold">
             {active.name}
           </h1>
           <span />
@@ -150,7 +150,7 @@ export function GalleryScreen({
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <span />
-        <h1 className="text-center text-[17px] font-semibold">Gallery</h1>
+        <h1 className="min-w-0 truncate text-center text-[17px] font-semibold">Gallery</h1>
         <UserButton photoCount={photoCount} folderCount={folderCount} />
       </header>
 

@@ -97,7 +97,7 @@ export function CameraScreen({
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[8px_1fr_auto] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <span />
-        <h1 className="truncate text-center text-[15px] font-semibold">
+        <h1 className="min-w-0 truncate text-center text-[15px] font-semibold">
           AI Disposable Camera
         </h1>
         <div className="flex items-center gap-1">
