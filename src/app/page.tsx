@@ -33,11 +33,6 @@ const STEPS = [
     title: "Wait for it to develop",
     body: "The frame sits dark and clears slowly while the film runs. A few seconds you can't skip. Every camera worth using made you wait for something.",
   },
-  {
-    n: "03",
-    title: "File it under the night it happened",
-    body: "Japan 2026. Nico's wedding. Last Thursday. Folders you name yourself — or save the photo straight to your device and keep it anywhere.",
-  },
 ];
 export default function Landing() {
   return (

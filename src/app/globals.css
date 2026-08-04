@@ -434,15 +434,15 @@ body {
 .landing-steps ol {
   display: grid;
   gap: 2.5rem;
-  max-width: 62rem;
+  max-width: 46rem;
   margin: 0 auto;
   padding: 0;
   list-style: none;
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 40rem) {
   .landing-steps ol {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 3rem;
   }
 }
