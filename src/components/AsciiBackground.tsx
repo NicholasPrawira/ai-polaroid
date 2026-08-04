@@ -41,7 +41,7 @@ export const SCENES: Scene[] = [
   // Same evening as Everyday Moments below, so it is framed wide on the whole
   // room while that one crops into the near group — otherwise the page shows
   // the identical picture twice.
-  { src: "/scene-reunion2.jpg", zoom: 1.05, focusX: 0.62 },
+  { src: "/scene-reunion2.jpg", zoom: 1.45, focusX: 0.34 },
   { src: "/scene-road-trip.png" },
   { src: "/scene-graduation.jpg" },
   { src: "/scene-hangout.png" },
