@@ -38,7 +38,10 @@ export type Scene = {
 
 export const SCENES: Scene[] = [
   { src: "/scene-travel1.jpg" },
-  { src: "/scene-reunion1.jpg" },
+  // Same evening as Everyday Moments below, so it is framed wide on the whole
+  // room while that one crops into the near group — otherwise the page shows
+  // the identical picture twice.
+  { src: "/scene-reunion2.jpg", zoom: 1.05, focusX: 0.62 },
   { src: "/scene-road-trip.png" },
   { src: "/scene-graduation.jpg" },
   { src: "/scene-hangout.png" },
@@ -401,17 +404,30 @@ export function AsciiBackground({
       raf = requestAnimationFrame(render);
     }
 
-    let loaded = 0;
+    // Settle on every scene, loaded or not. Waiting for all of them to succeed
+    // meant a single 404 left `ready` false for ever and the canvas blank —
+    // one missing file should cost one scene, not the whole effect.
+    let settled = 0;
+    const failed: number[] = [];
+    const start = () => {
+      // Any scene that failed borrows the nearest one that didn't, so the
+      // indices still line up with the hero words.
+      const fallback = images.find(Boolean);
+      if (!fallback) return; // nothing loaded at all
+      for (const i of failed) images[i] = fallback;
+      ready = true;
+      resize();
+      raf = requestAnimationFrame(render);
+    };
     sources.forEach((scene, i) => {
       const img = new Image();
-      img.onload = () => {
-        images[i] = img;
-        if (++loaded === sources.length) {
-          ready = true;
-          resize();
-          raf = requestAnimationFrame(render);
-        }
+      const done = (ok: boolean) => {
+        if (ok) images[i] = img;
+        else failed.push(i);
+        if (++settled === sources.length) start();
       };
+      img.onload = () => done(true);
+      img.onerror = () => done(false);
       img.src = scene.src;
     });
 
