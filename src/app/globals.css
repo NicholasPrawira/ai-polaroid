@@ -286,7 +286,10 @@ body {
   width: 100%;
   margin-bottom: 50vh;
   line-height: 1.2;
-  font-size: clamp(2rem, 9vw, 5rem);
+  /* Sized so the longest pairing — "Capture your Everyday Moments" — still fits
+     on one line at 390px. Wrapping would be fatal, not just ugly: the sticky
+     offset below assumes every item is exactly 1lh tall. */
+  font-size: clamp(1.42rem, 5.5vw, 4.5rem);
   font-weight: 600;
   letter-spacing: -0.03em;
 }
@@ -304,6 +307,7 @@ body {
   top: calc(var(--band) - 0.5lh);
   margin: 0;
   font: inherit;
+  white-space: nowrap;
   color: var(--color-on-surface);
 }
 
@@ -314,6 +318,7 @@ body {
 }
 
 .landing-hero li {
+  white-space: nowrap;
   color: var(--dim);
 }
 

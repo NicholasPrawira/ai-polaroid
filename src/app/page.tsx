@@ -10,7 +10,16 @@ export const metadata: Metadata = {
 /* The words scroll through a fixed highlight band, lighting up one at a time.
    Server-rendered — the whole effect is sticky positioning plus a fixed-
    attachment gradient clipped to the text. No JavaScript involved. */
-const WORDS = ["point.", "shoot.", "wait.", "develop.", "remember."];
+const WORDS = [
+  "Travel",
+  "Reunion",
+  "Road Trip",
+  "Graduation",
+  "Hangout",
+  "Concert",
+  "First Date",
+  "Everyday Moments",
+];
 
 const STEPS = [
   {
@@ -36,9 +45,10 @@ export default function Landing() {
       <header className="landing-hero">
         <div className="landing-hero-inner">
           <h1>
-            <span aria-hidden="true">you can&nbsp;</span>
+            <span aria-hidden="true">Capture your&nbsp;</span>
             <span className="sr-only">
-              You can point, shoot, wait, develop, remember.
+              Capture your travel, reunion, road trip, graduation, hangout,
+              concert, first date, and everyday moments.
             </span>
           </h1>
           <ul aria-hidden="true">
