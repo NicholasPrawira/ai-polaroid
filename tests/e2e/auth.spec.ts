@@ -2,12 +2,14 @@ import { expect, test } from "@playwright/test";
 import { newEmail, signIn } from "./helpers";
 
 test.describe("getting in", () => {
-  test("a signed-out visitor is sent to the login page", async ({ page }) => {
+  test("a signed-out visitor gets the landing page, not a form", async ({
+    page,
+  }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(
-      page.getByRole("heading", { name: "AI Disposable Camera" }),
-    ).toBeVisible();
+    await expect(page).toHaveURL("http://127.0.0.1:3000/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Capture your",
+    );
   });
 
   test("the dashboard is not reachable signed out either", async ({ page }) => {
@@ -75,7 +77,11 @@ test.describe("getting in", () => {
     await page.getByRole("button", { name: /^sign out$/i }).click();
     await page.waitForURL(/\/login/);
 
+    // Back to the front door, not the camera.
     await page.goto("/");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Capture your",
+    );
+    await expect(page.getByRole("button", { name: /take photo/i })).toHaveCount(0);
   });
 });

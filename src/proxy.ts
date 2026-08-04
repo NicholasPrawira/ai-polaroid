@@ -16,8 +16,13 @@ import { originOf } from "@/lib/origin";
  *    RLS and in the checks each page and route makes for itself.
  */
 
-/** Reachable without a session. Everything else requires one. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+/**
+ * Reachable without a session. Everything else requires one.
+ *
+ * `/` is public because it serves the landing page to signed-out visitors and
+ * the camera to everyone else; the page itself decides which, from the session.
+ */
+const PUBLIC_PATHS = ["/", "/login", "/auth"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
