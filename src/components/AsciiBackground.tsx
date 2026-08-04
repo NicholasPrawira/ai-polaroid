@@ -35,7 +35,7 @@ export const SCENES = [
   "/scene-hangout.png",
   "/scene-concert.png",
   "/scene-first-date.png",
-  "/scene-everyday.png",
+  "/scene-everyday.jpg",
 ];
 
 export function AsciiBackground({
