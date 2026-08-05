@@ -23,14 +23,16 @@ export function ResultScreen({
   onCreateFolder,
   photoCount,
   folderCount,
+  profile,
 }: {
   shot: Shot;
   folders: Folder[];
   onNewPhoto: () => void;
   onFile: (shotId: string, folderId: string | null) => void;
-  onCreateFolder: (name: string) => string;
+  onCreateFolder: (name: string) => Promise<string>;
   photoCount: number;
   folderCount: number;
+  profile: { is_pro: boolean; photo_quota: number } | null;
 }) {
   const [picking, setPicking] = useState(false);
   const folder = folders.find((f) => f.id === shot.folderId) ?? null;
@@ -76,7 +78,11 @@ export function ResultScreen({
         <h1 className="min-w-0 truncate text-center text-[15px] font-semibold">
           AI Disposable Camera
         </h1>
-        <UserButton photoCount={photoCount} folderCount={folderCount} />
+        <UserButton
+          photoCount={photoCount}
+          folderCount={folderCount}
+          profile={profile}
+        />
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-8">

@@ -146,13 +146,6 @@ export const CameraIcon = () => (
   </svg>
 );
 
-export const WandIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
-    <path d="M15 4l1.2 2.8L19 8l-2.8 1.2L15 12l-1.2-2.8L11 8l2.8-1.2z" />
-    <path d="M6.5 13.5l4 4M4 20l7-7" />
-  </svg>
-);
-
 export const StackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
     <rect x="7" y="4" width="12" height="15" rx="1.5" />
@@ -277,44 +270,38 @@ export const HourglassIcon = () => (
   </svg>
 );
 
-/** Bottom mode switcher. 3-column grid per the design system control bar. */
+/** Bottom mode switcher. A develop finishes straight into the gallery — no
+ *  separate "Develop" tab to hold a single in-progress result. */
 export function TabBar({
   screen,
   onSelect,
-  hasResult,
 }: {
   screen: Screen;
   onSelect: (s: Screen) => void;
-  hasResult: boolean;
 }) {
   const tabs: Array<{ id: Screen; label: string; icon: React.ReactNode }> = [
     { id: "camera", label: "Camera", icon: <CameraIcon /> },
-    { id: "result", label: "Develop", icon: <WandIcon /> },
     { id: "gallery", label: "Gallery", icon: <StackIcon /> },
   ];
 
   return (
-    <nav className="grid grid-cols-3 items-center justify-items-center border-t border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-6 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-      {tabs.map((t) => {
-        const disabled = t.id === "result" && !hasResult;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            aria-label={t.label}
-            aria-current={screen === t.id}
-            disabled={disabled}
-            onClick={() => onSelect(t.id)}
-            className={`grid h-10 w-10 place-items-center rounded-full transition-colors disabled:opacity-25 ${
-              screen === t.id
-                ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                : "text-[var(--color-on-surface-variant)]"
-            }`}
-          >
-            {t.icon}
-          </button>
-        );
-      })}
+    <nav className="grid grid-cols-2 items-center justify-items-center border-t border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-6 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          aria-label={t.label}
+          aria-current={screen === t.id}
+          onClick={() => onSelect(t.id)}
+          className={`grid h-10 w-10 place-items-center rounded-full transition-colors ${
+            screen === t.id
+              ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+              : "text-[var(--color-on-surface-variant)]"
+          }`}
+        >
+          {t.icon}
+        </button>
+      ))}
     </nav>
   );
 }

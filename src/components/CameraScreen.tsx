@@ -23,11 +23,13 @@ export function CameraScreen({
   lastShot,
   photoCount,
   folderCount,
+  profile,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
   photoCount: number;
   folderCount: number;
+  profile: { is_pro: boolean; photo_quota: number } | null;
 }) {
   const { videoRef, facing, flip, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
@@ -120,7 +122,11 @@ export function CameraScreen({
           >
             <FlashIcon on={flash} />
           </IconButton>
-          <UserButton photoCount={photoCount} folderCount={folderCount} />
+          <UserButton
+            photoCount={photoCount}
+            folderCount={folderCount}
+            profile={profile}
+          />
         </div>
       </header>
 
@@ -202,7 +208,13 @@ export function CameraScreen({
       </div>
 
       <p className="type-viewfinder-label -mt-2 pb-2 text-center text-[var(--color-on-surface-variant)] opacity-60">
-        {countdown !== null ? "tap shutter to cancel" : " "}
+        {countdown !== null
+          ? "tap shutter to cancel"
+          : profile
+            ? profile.is_pro
+              ? "Unlimited photos"
+              : `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
+            : " "}
       </p>
     </div>
   );

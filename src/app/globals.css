@@ -373,9 +373,86 @@ body {
   align-items: center;
   justify-content: center;
   gap: 1.75rem;
-  min-height: 100svh;
-  padding: 3rem 1.5rem max(3rem, calc(3rem + env(safe-area-inset-bottom)));
+  /* Not min-height: 100svh — with the carousel and FAQ both now living in
+     the reveal panel, forcing every section to a full screen just padded
+     out the space between them. `.landing-reveal` itself still guarantees
+     the panel as a whole is at least one screen tall on first reveal. */
+  padding: 3rem 1.5rem 1.5rem;
   text-align: center;
+}
+
+/* Sits inside the same flex section as the pitch/CTA/sign-in, right below
+   sign-in — not its own full-height section, so it never needs a second
+   scroll to reach. Width 100% because a flex child otherwise shrinks to its
+   content; max-width caps the carousel's own w-full on wide viewports. */
+.landing-showcase {
+  width: 100%;
+  max-width: 640px;
+  margin-top: 0.5rem;
+}
+
+/* --- FAQ: its own section below the showcase, native <details> so it
+   works with zero JavaScript — same philosophy as the hero word list. --- */
+
+/* Pinned toward the top instead of centered — the base rule's padding-top
+   already closed most of the gap to the section above, this only needs a
+   little of its own. */
+.landing-reveal section.landing-faq {
+  justify-content: flex-start;
+  padding-top: 0.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.landing-faq-list {
+  display: flex;
+  width: 100%;
+  max-width: 560px;
+  flex-direction: column;
+  text-align: left;
+}
+
+/* No card, no border box — just the question, the plus, and a hairline
+   under each row to keep the list readable without boxing it in. */
+.landing-faq-item {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgb(28 28 29 / 0.12);
+}
+.landing-faq-item:first-child {
+  border-top: 1px solid rgb(28 28 29 / 0.12);
+}
+
+.landing-faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.landing-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Plus becomes minus on open — plain glyphs, no icon font needed. */
+.landing-faq-item summary::after {
+  content: "+";
+  flex: none;
+  color: rgb(28 28 29 / 0.55);
+  font-size: 18px;
+  font-weight: 400;
+}
+.landing-faq-item[open] summary::after {
+  content: "\2212";
+}
+
+.landing-faq-item p {
+  margin: 0.75rem 0 0;
+  color: rgb(28 28 29 / 0.68);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .landing-pitch {
@@ -419,6 +496,48 @@ body {
 }
 .landing-signin a:hover {
   border-bottom-color: #1c1c1d;
+}
+
+/* --- Footer: dark again, echoing the hero so the page closes the way it
+   opened instead of trailing off on the bright panel. --- */
+
+.landing-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #1c1c1d;
+  color: var(--color-on-darkroom);
+  padding: 2rem 1.5rem max(2rem, calc(2rem + env(safe-area-inset-bottom)));
+  border-top: 1px solid rgb(255 255 255 / 0.14);
+  font-size: 13px;
+}
+
+.landing-footer p {
+  margin: 0;
+  max-width: 46ch;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.landing-footer cite {
+  display: block;
+  margin-top: 0.25rem;
+  font-style: normal;
+  opacity: 0.65;
+}
+
+.landing-footer a {
+  flex: none;
+  color: var(--color-film-amber-bright);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.landing-footer a:hover {
+  text-decoration: underline;
 }
 
 /* --- Progressive enhancement: the panel grows as it scrolls in --- */

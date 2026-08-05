@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import { CloseIcon, HourglassIcon } from "./Chrome";
-import { formatCountdown } from "@/lib/useDevelop";
 
 /**
  * The darkroom. The only dark screen in the app, bracketed by two light ones,
@@ -22,9 +21,6 @@ export function ProcessingScreen({
   onCancel: () => void;
   onRetry: () => void;
 }) {
-  // The emulsion clears as it develops: dark and blurred → sharp.
-  const clarity = Math.pow(progress, 1.4);
-
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--color-darkroom)] text-[var(--color-on-darkroom)]">
       <header className="flex items-center justify-between px-4 pt-[max(10px,env(safe-area-inset-top))] pb-2">
@@ -52,14 +48,12 @@ export function ProcessingScreen({
               unoptimized
               sizes="300px"
               className="object-cover"
-              style={{
-                filter: `blur(${(1 - clarity) * 14}px) brightness(${0.12 + clarity * 0.88}) saturate(${clarity})`,
-                transform: `scale(${1 + (1 - clarity) * 0.06})`,
-              }}
             />
+            {/* Slow fade from black up to the photo — no blur/scale gimmick,
+                just the image opening up as progress advances. */}
             <div
               className="absolute inset-0 bg-black"
-              style={{ opacity: (1 - clarity) * 0.75 }}
+              style={{ opacity: 1 - progress }}
             />
           </PhotoCard>
         </div>
@@ -70,12 +64,7 @@ export function ProcessingScreen({
               {error}
             </p>
           ) : (
-            <>
-              <p className="type-headline-lg">Developing…</p>
-              <p className="type-timestamp-sm mt-1.5 opacity-55">
-                EST. {formatCountdown(progress)}
-              </p>
-            </>
+            <p className="type-headline-lg">Developing…</p>
           )}
         </div>
       </div>

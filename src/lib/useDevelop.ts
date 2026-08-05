@@ -144,11 +144,3 @@ export function useDevelop(onComplete: (image: string) => void) {
 
   return { state, progress, start, cancel, reset };
 }
-
-export function formatCountdown(progress: number): string {
-  const remainingMs = Math.max(0, ESTIMATED_MS * (1 - progress / 0.85));
-  const total = Math.ceil(remainingMs / 1000);
-  const mm = String(Math.floor(total / 60)).padStart(2, "0");
-  const ss = String(total % 60).padStart(2, "0");
-  return `${mm}:${ss}`;
-}

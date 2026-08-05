@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 // Image generation runs ~10-40s; the platform default would cut it short.
@@ -46,6 +47,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // /camera is auth-gated, but this API route is a public endpoint in its
+  // own right — it has to check the session itself rather than trust that
+  // only signed-in users can ever reach it.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  // Atomic in Postgres: checks quota and decrements in one statement, so
+  // concurrent requests can't both pass the check before either commits.
+  const { data: allowed, error: quotaError } = await supabase.rpc(
+    "consume_photo_quota",
+  );
+  if (quotaError) {
+    return NextResponse.json({ error: quotaError.message }, { status: 500 });
+  }
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "You're out of photos. Ask the admin for more." },
+      { status: 403 },
+    );
+  }
+
   const model = process.env.OPENROUTER_IMAGE_MODEL || DEFAULT_MODEL;
 
   let upstream: Response;
@@ -87,11 +112,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (!upstream.ok) {
-    const message =
+    // OpenRouter's error text can include account/billing details (key
+    // limits, dashboard links) that mean nothing to an end user and expose
+    // infrastructure that isn't theirs to see. Log the real reason for
+    // debugging, but only ever show a generic message on the client.
+    const upstreamMessage =
       typeof body.error === "string"
         ? body.error
         : (body.error?.message ?? `OpenRouter returned ${upstream.status}.`);
-    return NextResponse.json({ error: message }, { status: upstream.status });
+    console.error("OpenRouter develop request failed:", upstreamMessage);
+    return NextResponse.json(
+      { error: "Couldn't develop this photo right now. Please try again." },
+      { status: upstream.status },
+    );
   }
 
   const first = body.data?.[0];

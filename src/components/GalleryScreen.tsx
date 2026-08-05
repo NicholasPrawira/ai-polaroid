@@ -85,12 +85,14 @@ export function GalleryScreen({
   onSelect,
   photoCount,
   folderCount,
+  profile,
 }: {
   shots: Shot[];
   folders: Folder[];
   onSelect: (shot: Shot) => void;
   photoCount: number;
   folderCount: number;
+  profile: { is_pro: boolean; photo_quota: number } | null;
 }) {
   const [tab, setTab] = useState<"all" | "folders">("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
@@ -151,7 +153,11 @@ export function GalleryScreen({
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <span />
         <h1 className="min-w-0 truncate text-center text-[17px] font-semibold">Gallery</h1>
-        <UserButton photoCount={photoCount} folderCount={folderCount} />
+        <UserButton
+          photoCount={photoCount}
+          folderCount={folderCount}
+          profile={profile}
+        />
       </header>
 
       <div className="flex justify-center px-6 pt-1 pb-3">
@@ -178,10 +184,6 @@ export function GalleryScreen({
           ))}
         </div>
       </div>
-
-      <p className="type-viewfinder-label px-6 pb-4 text-center leading-4 text-[var(--color-on-surface-variant)] opacity-70">
-        This session only — nothing is stored. Save a photo to keep it.
-      </p>
 
       {tab === "all" ? (
         shots.length === 0 ? (

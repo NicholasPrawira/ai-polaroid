@@ -16,15 +16,42 @@ import {
 } from "./Chrome";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/auth/actions";
+import { ADMIN_EMAIL } from "@/lib/admin";
+
+const AdminIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+  >
+    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+  >
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" />
+  </svg>
+);
 
 /**
  * Account menu.
  *
  * Only renders inside /camera, which middleware gates to signed-in users — so
- * a session can be assumed present. Change password and Sign out are real.
- * Billing and Privacy still aren't wired to anything, because there's no
- * payment provider and no photo storage yet; they say so when tapped rather
- * than silently doing nothing.
+ * a session can be assumed present. Change password, Sign out, and the
+ * photo/folder counts are real. Billing still isn't wired to anything,
+ * because there's no payment provider; it says so when tapped rather than
+ * silently doing nothing.
  */
 
 /**
@@ -42,7 +69,7 @@ const PLANS = [
     current: true,
     features: [
       "10 AI develops per month",
-      "Photos kept for the session only",
+      "Photos saved to your account",
       "Unlimited folders",
       "Save to your device",
     ],
@@ -55,27 +82,32 @@ const PLANS = [
     current: false,
     features: [
       "100 AI develops per month",
-      "Photos backed up and synced",
       "Shared folders for events",
       "Full-resolution export",
     ],
   },
 ] as const;
 
-type View = "menu" | "pricing";
+type View = "menu" | "pricing" | "delete";
 
 export function UserButton({
   photoCount,
   folderCount,
+  profile,
 }: {
   photoCount: number;
   folderCount: number;
+  /** Owned by the page — a develop decrements it immediately, so this stays
+   *  live instead of only refreshing whenever the sheet happens to open. */
+  profile: { is_pro: boolean; photo_quota: number } | null;
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [pending, setPending] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // /camera is auth-gated by middleware, so a session is guaranteed to exist
   // by the time this mounts — this just fetches which one, from the Auth
@@ -91,6 +123,44 @@ export function UserButton({
     setOpen(false);
     setView("menu");
     setPending(null);
+    setDeleteError(null);
+  }
+
+  // Storage objects have no FK link to auth.users, so they're removed here
+  // via the Storage API (direct SQL delete is blocked by a Supabase
+  // protection trigger) before the account row — and everything it cascades
+  // to — is dropped by the delete_own_account() RPC.
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError(null);
+    const supabase = createClient();
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (uid) {
+        const { data: rows } = await supabase
+          .from("photos")
+          .select("storage_path")
+          .eq("user_id", uid);
+        const paths = (rows ?? []).map((r) => r.storage_path);
+        if (paths.length > 0) {
+          await supabase.storage.from("photos").remove(paths);
+        }
+      }
+
+      const { error } = await supabase.rpc("delete_own_account");
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      window.location.assign("/");
+    } catch (err) {
+      setDeleting(false);
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : "Could not delete your account. Try again.",
+      );
+    }
   }
 
   const rows = [
@@ -120,10 +190,13 @@ export function UserButton({
 
           <div className="relative max-h-[88dvh] overflow-y-auto rounded-t-xl bg-[var(--color-surface-container-low)] pb-[max(16px,env(safe-area-inset-bottom))]">
             <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-5 py-4">
-              {view === "pricing" && (
+              {view !== "menu" && (
                 <button
                   type="button"
-                  onClick={() => setView("menu")}
+                  onClick={() => {
+                    setView("menu");
+                    setDeleteError(null);
+                  }}
                   aria-label="Back"
                   className="-ml-2 grid h-8 w-8 place-items-center rounded-md text-[var(--color-on-surface-variant)]"
                 >
@@ -131,7 +204,11 @@ export function UserButton({
                 </button>
               )}
               <h2 className="flex-1 text-[15px] font-semibold">
-                {view === "pricing" ? "Plans" : "Account"}
+                {view === "pricing"
+                  ? "Plans"
+                  : view === "delete"
+                    ? "Delete account"
+                    : "Account"}
               </h2>
               <button
                 type="button"
@@ -203,6 +280,36 @@ export function UserButton({
                   charged, and no payment provider is connected.
                 </p>
               </div>
+            ) : view === "delete" ? (
+              <div className="space-y-4 px-5 py-5">
+                <p className="type-body-md">
+                  This deletes your account, every photo in your library, and
+                  every folder — permanently. There&apos;s no way to undo this.
+                </p>
+                {deleteError && (
+                  <p className="type-timestamp-sm text-[var(--color-error)]">
+                    {deleteError}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={handleDeleteAccount}
+                    className="type-button-text w-full rounded-md bg-[var(--color-error)] px-4 py-3 text-white disabled:opacity-50"
+                  >
+                    {deleting ? "Deleting…" : "Yes, delete my account"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => setView("menu")}
+                    className="type-button-text w-full rounded-md border border-[var(--color-outline-variant)] px-4 py-3 text-[var(--color-on-surface)] disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <div className="flex items-center gap-4 px-5 py-5">
@@ -217,10 +324,14 @@ export function UserButton({
                   </div>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-3 px-5 pb-4">
+                <dl className="grid grid-cols-3 gap-3 px-5 pb-4">
                   {[
                     ["photos", photoCount],
                     ["folders", folderCount],
+                    [
+                      "left",
+                      profile ? (profile.is_pro ? "∞" : profile.photo_quota) : "…",
+                    ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -234,22 +345,24 @@ export function UserButton({
                   ))}
                 </dl>
 
-                <button
-                  type="button"
-                  onClick={() => setView("pricing")}
-                  className="mx-5 mb-2 flex w-[calc(100%-40px)] items-center gap-3 rounded-md border border-[var(--color-outline-variant)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                >
-                  <span className="text-[var(--color-film-amber)]">
-                    <SparkIcon />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="type-body-md block">Upgrade to Pro</span>
-                    <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
-                      on Free — 10 develops a month
+                {!profile?.is_pro && (
+                  <button
+                    type="button"
+                    onClick={() => setView("pricing")}
+                    className="mx-5 mb-2 flex w-[calc(100%-40px)] items-center gap-3 rounded-md border border-[var(--color-outline-variant)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                  >
+                    <span className="text-[var(--color-film-amber)]">
+                      <SparkIcon />
                     </span>
-                  </span>
-                  <ChevronRightIcon />
-                </button>
+                    <span className="min-w-0 flex-1">
+                      <span className="type-body-md block">Upgrade to Pro</span>
+                      <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
+                        on Free — {profile?.photo_quota ?? "…"} photos left
+                      </span>
+                    </span>
+                    <ChevronRightIcon />
+                  </button>
+                )}
 
                 <ul className="px-3 py-1">
                   <li>
@@ -266,6 +379,21 @@ export function UserButton({
                       <ChevronRightIcon />
                     </Link>
                   </li>
+
+                  {email === ADMIN_EMAIL && (
+                    <li>
+                      <Link
+                        href="/admin"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                      >
+                        <span className="text-[var(--color-on-surface-variant)]">
+                          <AdminIcon />
+                        </span>
+                        <span className="type-body-md flex-1">Admin</span>
+                        <ChevronRightIcon />
+                      </Link>
+                    </li>
+                  )}
 
                   {rows.map((row) => (
                     <li key={row.id}>
@@ -301,6 +429,22 @@ export function UserButton({
                       </span>
                     </button>
                   </li>
+
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => setView("delete")}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-[var(--color-error)] transition-colors hover:bg-[var(--color-surface-container)]"
+                    >
+                      <span>
+                        <TrashIcon />
+                      </span>
+                      <span className="type-body-md flex-1">
+                        Delete account
+                      </span>
+                      <ChevronRightIcon />
+                    </button>
+                  </li>
                 </ul>
               </>
             )}
@@ -309,7 +453,7 @@ export function UserButton({
               <p className="mx-5 mt-3 rounded-md bg-[var(--color-surface-container)] px-4 py-3 text-[13px] leading-5 text-[var(--color-on-surface-variant)]">
                 {pending === "billing"
                   ? "No payment provider is connected, so nothing can be charged. Plans are a sketch, not an offer."
-                  : "Your email and password are stored by Supabase Auth. Photos aren't stored anywhere — the one sent for developing goes to the image model and back, nothing more."}
+                  : "Your email and password are stored by Supabase Auth. Developed photos are stored in your private library — only you can access them."}
               </p>
             )}
           </div>

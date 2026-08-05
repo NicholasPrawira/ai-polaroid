@@ -24,14 +24,14 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Tidak untuk multi-user/skala besar dulu — fokus dipakai sendiri.
 - Tidak ada fitur social sharing/publish ke feed di dalam app (share manual via save/export dulu).
 - Tidak buat versi cetak fisik (integrasi printer) di v1.
-- Tidak ada penyimpanan foto permanen — gallery hilang saat refresh (lihat §5.5).
+- Tidak ada sinkron lintas device atau shared folder — itu roadmap Pro (lihat §5.5, §4).
 - Tidak ada judul foto maupun timestamp di bingkai (lihat §5.4).
 - Tidak ada multi-style filter — satu look disposable untuk v1.
 
 ## 4. Target User
 
 - Nicho sendiri (personal use) — app di-deploy live (accessible via URL) supaya bisa diakses dari browser HP, bukan cuma dijalankan di local.
-- **Wajib akun (P0, lihat §5.8).** `/camera` — kamera, gallery, folder — hanya bisa diakses setelah sign in. Ini keputusan sadar: dibalik dari rencana awal "tidak ada akun", karena persistence & sinkron lintas device (roadmap) tidak masuk akal tanpa identitas user.
+- **Wajib akun (P0, lihat §5.8).** `/camera` — kamera, gallery, folder — hanya bisa diakses setelah sign in. Ini keputusan sadar: dibalik dari rencana awal "tidak ada akun", karena persistence & sinkron lintas device tidak masuk akal tanpa identitas user. Keduanya sudah jalan sekarang, gratis di semua tier, karena satu mekanisme (Supabase per-`user_id`) memberi keduanya sekaligus — lihat §5.5, §7.
 
 ## 5. Core Features
 
@@ -82,9 +82,9 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Di perangkat touch-only (iOS), penyimpanan memakai Web Share API supaya user bisa "Save Image" ke Photos; di desktop memakai download biasa.
 - Prompt AI juga secara eksplisit melarang model membakar date stamp / angka ke dalam foto — kamera disposable era 2000-an biasanya mencetak tanggal oranye di pojok, dan itu tidak diinginkan di sini.
 
-### 5.5 Gallery (session-only)
+### 5.5 Gallery (persisted per-akun)
 - Dua tab: **All Photos** dan **Folders**.
-- **All Photos** — semua foto sesi ini, dikelompokkan per hari (`Today`, `Yesterday`,
+- **All Photos** — semua foto milik user, dikelompokkan per hari (`Today`, `Yesterday`,
   lalu tanggalnya) sehingga terbaca sebagai riwayat, bukan tumpukan datar.
 - **Folders** — daftar folder buatan user (mis. "Japan 2026", "Nico Wedding")
   dengan cover foto terbaru dan jumlah isinya. Tap untuk membuka isinya.
@@ -92,10 +92,14 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - Folder dibuat dari sheet "Add to folder" di layar hasil — tidak ada layar
   manajemen folder terpisah, supaya alurnya tetap satu arah.
 - Satu foto berada di paling banyak satu folder (`folderId`, `null` = unsorted).
-- Tab gallery menampilkan foto-foto yang dibuat **selama sesi berjalan saja**, disimpan in-memory (React state).
-- **Foto tidak di-persist sama sekali** — refresh atau tutup tab = gallery kosong. Konsisten dengan §7 Storage: tidak ada server storage, dan foto tidak pernah masuk localStorage/IndexedDB.
+- Setiap foto yang selesai di-develop diupload ke Supabase Storage (bucket privat
+  `photos`, path `{user_id}/{photo_id}.{ext}`) dan dicatat di tabel `photos`;
+  folder dicatat di tabel `folders`. RLS membatasi setiap row/objek hanya bisa
+  diakses oleh `auth.uid()` pemiliknya — lihat §7 Storage.
+- Gallery dimuat ulang dari Supabase setiap `/camera` mount, jadi bertahan lintas
+  refresh, sesi, maupun device — sign in dari device lain menampilkan library
+  yang sama karena disimpan per-akun, bukan per-browser.
 - Tampilan memakai rotasi ringan ±2 derajat (semangat Film Stack dari design system), tapi tanpa bingkai kertas.
-- User perlu diberi tahu secara halus bahwa foto tidak tersimpan permanen — save/download adalah satu-satunya cara menyimpan.
 
 ### 5.6 Tema: gelap saja
 - **Tidak ada light mode.** App memakai satu palet gelap — di landing maupun di
@@ -111,16 +115,28 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 ### 5.7 Account
 - Ikon user di kanan atas setiap layar di dalam `/camera` membuka sheet Account.
 - Isinya sekarang: email user (diambil live dari Supabase, bukan dari session cache),
-  jumlah foto & folder di sesi ini, kartu Upgrade to Pro, lalu menu — Change password
-  (nyambung ke §5.8), Billing & invoices, Privacy & data, Sign out (nyambung).
+  jumlah foto & folder tersimpan, sisa kuota foto (`profiles.photo_quota`, atau `∞`
+  kalau `is_pro`), kartu Upgrade to Pro (disembunyikan kalau sudah Pro), lalu menu —
+  Admin (khusus admin, lihat §5.9), Change password (nyambung ke §5.8), Billing &
+  invoices, Privacy & data, Sign out (nyambung), **Delete account**.
+- **Delete account** — merah, di paling bawah. Tap membuka sub-layar konfirmasi
+  ("This deletes your account, every photo in your library, and every folder —
+  permanently. There's no way to undo this.") dengan tombol Cancel dan tombol merah
+  "Yes, delete my account" — tidak ada cara menghapus akun dalam satu tap. Alurnya:
+  hapus semua object storage milik user lewat Storage API (bukan SQL langsung —
+  `storage.objects` punya trigger yang menolak `DELETE` langsung), lalu panggil RPC
+  `delete_own_account()` yang men-drop baris `auth.users` (dan cascade ke
+  `profiles`/`folders`/`photos`), lalu sign out dan redirect ke `/`.
 - Sub-layar **Plans**: dua tier (Free / Pro) beserta daftar fiturnya.
-- **Billing & Privacy masih placeholder** — belum ada payment provider, belum ada
-  storage foto. Angka harga di Plans adalah sketsa, bukan penawaran — tapi kuotanya
-  dihitung dari biaya nyata $0,06/foto: Free 10/bulan (biaya $0,60), Pro $9/bulan
-  untuk 100 develop (biaya $6, margin ~33% saat dipakai penuh).
-- **Tier "unlimited" tidak bisa ditawarkan.** Satu user berat akan menghabiskan nilai
-  langganannya sendiri dalam hitungan hari. Di produk ini kuota adalah produknya,
-  bukan sekadar pembatas.
+- **Billing masih placeholder** — belum ada payment provider, jadi upgrade ke Pro
+  dan penambahan kuota sekarang manual lewat admin dashboard (§5.9), bukan self-serve.
+  Angka harga di Plans adalah sketsa, bukan penawaran — tapi kuotanya dihitung dari
+  biaya nyata $0,06/foto: Free 10 foto (biaya $0,60), Pro $9/bulan untuk 100 develop
+  (biaya $6, margin ~33% saat dipakai penuh).
+- **Tier "unlimited" tidak bisa ditawarkan ke Free.** Satu user berat akan
+  menghabiskan nilai langganannya sendiri dalam hitungan hari. Di produk ini kuota
+  adalah produknya, bukan sekadar pembatas — makanya benar-benar di-enforce di
+  `/api/develop` (§5.9), bukan cuma angka dekoratif.
 - Item yang belum jalan tetap menjelaskan dirinya saat ditekan, bukan diam saja.
 
 ### 5.8 Auth (P0)
@@ -148,6 +164,37 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
      (format PKCE, `{{ .TokenHash }}`) — bukan endpoint verify bawaan Supabase.
      Tanpa ini, link di email tidak akan pernah sampai ke `/auth/confirm`.
 
+### 5.9 Admin dashboard & kuota foto
+- **Admin cuma satu akun**, hardcoded ke email `nicholasprawiratan@gmail.com`
+  (`ADMIN_EMAIL` di `src/lib/admin.ts`). Tidak ada role system — sengaja, ini
+  personal project dengan satu operator.
+- Setiap akun punya row di tabel `profiles` (dibuat otomatis lewat trigger
+  `on_auth_user_created` saat sign up): `is_pro` (boolean) dan `photo_quota`
+  (integer, default 10 saat akun baru dibuat).
+- `/admin` — halaman yang cuma bisa diakses admin — menampilkan semua akun dengan
+  dua kontrol per akun: toggle **Pro/Free**, dan form **tambah foto** (angka bebas,
+  ditambahkan ke `photo_quota` yang ada, bukan menggantinya).
+- **Enforcement nyata, bukan dekoratif:** `/api/develop` memanggil fungsi Postgres
+  `consume_photo_quota()` sebelum request ke OpenRouter — kalau `is_pro` true,
+  selalu lolos tanpa mengurangi kuota; kalau bukan dan `photo_quota <= 0`, request
+  ditolak (403) sebelum uang keluar ke OpenRouter. Kalau lolos, `photo_quota`
+  dikurangi 1 secara atomik di database yang sama (`select ... for update`), supaya
+  request bersamaan tidak bisa dua-duanya lolos dari satu sisa kuota.
+- **Keamanan berlapis, tapi RLS yang sebenarnya menegakkan:**
+  1. `src/proxy.ts` — belum login diarahkan ke `/login`; sudah login tapi bukan
+     admin diarahkan ke `/camera`, supaya non-admin bahkan tidak melihat halamannya.
+  2. `src/app/admin/page.tsx` — cek ulang email dari `getClaims()` sebelum render.
+  3. `src/app/admin/actions.ts` — tiap Server Action (`setPro`, `addPhotoQuota`)
+     cek ulang admin sebelum jalan, karena Server Action adalah endpoint publik
+     sendiri, terlepas dari halaman mana yang memanggilnya.
+  4. **Baris terakhir yang sebenarnya tidak bisa ditembus**: RLS policy di tabel
+     `profiles` (`profiles_select_admin`, `profiles_update_admin`) memakai fungsi
+     `private.is_admin()` yang membaca email langsung dari JWT — jadi walau
+     tiga lapis di atas somehow gagal, database sendiri tetap menolak baca/tulis
+     profil orang lain dari akun non-admin.
+- Tidak ada UI untuk admin membuat/menghapus akun — itu tetap lewat `/signup`
+  biasa. Admin cuma mengatur `is_pro` dan `photo_quota` akun yang sudah ada.
+
 ## 6. User Flow
 
 1. User buka app → diminta izin akses kamera.
@@ -157,7 +204,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 5. Layar processing (tema gelap) menampilkan foto yang develop bertahap + countdown. User bisa Cancel.
 6. Hasil AI datang → animasi diselesaikan → hasil akhir foto ditampilkan penuh.
 7. User bisa save/download atau capture ulang.
-8. Foto masuk ke gallery sesi (hilang kalau di-refresh).
+8. Foto diupload ke library milik user dan tetap ada setelah refresh (§5.5).
 
 ## 7. Technical Considerations
 
@@ -169,7 +216,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - **Camera constraint:** `getUserMedia` hanya memberi video stream. Metadata kamera (shutter/aperture/ISO) tidak tersedia — lihat §5.1a, HUD sepenuhnya dekoratif.
 - **HTTPS:** `getUserMedia` hanya jalan di secure context. Di local pakai `localhost`; di production Vercel sudah HTTPS by default.
 - **Platform:** web app biasa (bukan PWA/native), dibuka lewat browser di HP.
-- **Storage:** tidak ada penyimpanan foto di server — foto diproses lalu langsung didownload/ditampilkan ke user, tidak ada database/object storage. Gallery in-memory saja (§5.5).
+- **Storage:** Supabase Postgres (tabel `photos`, `folders`) + Supabase Storage (bucket privat `photos`). Foto diproses, diupload ke storage dengan path `{user_id}/{photo_id}.{ext}`, dan dibacakan lewat signed URL yang di-generate ulang tiap load — RLS di kedua layer membatasi akses ke `auth.uid()` pemiliknya (§5.5).
 - **API key:** `OPENROUTER_API_KEY` hanya dipakai di server (API Route), tidak pernah dikirim ke client.
 
 ## 8. Tech Stack
@@ -180,7 +227,7 @@ Ini adalah proyek personal (bukan untuk klien atau venture lain), dibuat karena 
 - **Styling:** Tailwind CSS, dengan token dari `designsystem.md` di-map ke theme config.
 - **Fonts:** Inter (UI) + Courier Prime (timestamp/metadata), via `next/font/google`.
 - **Hosting:** Vercel (deploy satu Next.js app, frontend + API routes jalan bareng — gak ada backend service terpisah).
-- **Storage/Database:** tidak ada — no persistence, foto diproses on-the-fly dan langsung didownload di client.
+- **Storage/Database:** Supabase (Postgres + Storage + Auth). `folders`/`photos`/`profiles` tables dan bucket `photos` diakses lewat `@supabase/ssr` (`src/lib/supabase/client.ts`, `server.ts`), dengan RLS policy per-`user_id` di semua tabel, plus policy khusus admin di `profiles` lewat `private.is_admin()` (§5.9). Tidak pakai service role key sama sekali — admin dashboard jalan murni lewat RLS atas session admin sendiri.
 
 ## 9. Success Metrics (untuk personal project)
 

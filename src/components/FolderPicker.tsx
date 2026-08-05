@@ -15,18 +15,29 @@ export function FolderPicker({
   folders: Folder[];
   current: string | null;
   onPick: (folderId: string | null) => void;
-  onCreate: (name: string) => string;
+  onCreate: (name: string) => Promise<string>;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) return;
-    onPick(onCreate(trimmed));
-    setName("");
-    onClose();
+    if (!trimmed || creating) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const id = await onCreate(trimmed);
+      onPick(id);
+      setName("");
+      onClose();
+    } catch {
+      setError("Could not create the folder. Try again.");
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
