@@ -66,14 +66,9 @@ async function downloadImage(url: string): Promise<Decoded> {
  * produced a print should not cost anything.
  */
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "OPENROUTER_API_KEY is not set. Add it to .env.local." },
-      { status: 500 },
-    );
-  }
-
+  // Who is asking comes first. Checking the server's own configuration ahead of
+  // it answered strangers with a 500 naming an internal variable, which both
+  // leaks a detail and hides the real reason they were refused.
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,6 +76,14 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "OPENROUTER_API_KEY is not set. Add it to .env.local." },
+      { status: 500 },
+    );
   }
 
   let image: unknown;

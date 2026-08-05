@@ -27,6 +27,12 @@ Open http://localhost:3000. `getUserMedia` needs a secure context, so use
 There is no service role key. Nothing in this app needs to bypass row level
 security, so the key that could is never issued to it.
 
+**The two `NEXT_PUBLIC_` values are inlined at build time.** Setting them in a
+hosting dashboard does nothing to a deployment that has already been built —
+trigger a rebuild. A deployment missing them answers *every* page with a 500,
+because the proxy builds a Supabase client on every request; the log will name
+which variable is missing.
+
 ### Database
 
 Run the migrations in `supabase/migrations/` in order, either through the
