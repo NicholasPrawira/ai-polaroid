@@ -68,19 +68,118 @@ begin;
   $$;
 rollback;
 
-\echo '--- spending a credit ---'
+\echo '--- opening a develop spends a credit and creates its photo ---'
 begin;
   set local role authenticated;
   set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
 
   do $$
-  declare left_after integer;
+  declare
+    opened record;
+    rows integer;
+    back integer;
   begin
-    left_after := public.consume_credit();
-    assert left_after = 9, format('expected 9 left, got %s', left_after);
+    select * into opened from public.begin_develop();
+    assert opened.credits = 9, format('expected 9 left, got %s', opened.credits);
 
-    left_after := public.refund_credit();
-    assert left_after = 10, format('refund should restore to 10, got %s', left_after);
+    select count(*) into rows from public.photos
+     where id = opened.photo_id and status = 'developing';
+    assert rows = 1, 'the develop should have created its own photo row';
+
+    back := public.refund_credit(opened.photo_id);
+    assert back = 10, format('refund should restore to 10, got %s', back);
+
+    select count(*) into rows from public.photos
+     where id = opened.photo_id and status = 'failed';
+    assert rows = 1, 'a refunded develop should be marked failed';
+  end
+  $$;
+rollback;
+
+\echo '--- a refund cannot be conjured out of nothing ---'
+begin;
+  set local role authenticated;
+  set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
+
+  -- The exploit this guards: refund_credit is granted to `authenticated`, so
+  -- PostgREST publishes it at /rest/v1/rpc/refund_credit and any signed-in user
+  -- can call it directly. Taking no argument, it simply added a credit — so a
+  -- loop minted an unlimited balance.
+  do $$
+  declare
+    refused boolean := false;
+    balance integer;
+  begin
+    begin
+      perform public.refund_credit(gen_random_uuid());
+    exception when others then
+      refused := true;
+    end;
+    assert refused, 'a refund against no develop at all was allowed';
+
+    select credits into balance from public.profiles
+     where id = '11111111-1111-1111-1111-111111111111';
+    assert balance = 10, format('balance moved without a develop: %s', balance);
+  end
+  $$;
+rollback;
+
+\echo '--- the same develop cannot be refunded twice ---'
+begin;
+  set local role authenticated;
+  set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
+
+  do $$
+  declare
+    opened record;
+    twice boolean := false;
+    balance integer;
+  begin
+    select * into opened from public.begin_develop();
+    perform public.refund_credit(opened.photo_id);
+
+    begin
+      perform public.refund_credit(opened.photo_id);
+    exception when others then
+      twice := true;
+    end;
+    assert twice, 'the same develop was refunded twice';
+
+    select credits into balance from public.profiles
+     where id = '11111111-1111-1111-1111-111111111111';
+    assert balance = 10, format('double refund changed the balance: %s', balance);
+  end
+  $$;
+rollback;
+
+\echo '--- one account cannot refund against another''s develop ---'
+begin;
+  set local role authenticated;
+  set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
+
+  do $$
+  declare
+    opened record;
+    refused boolean := false;
+    balance integer;
+  begin
+    select * into opened from public.begin_develop();
+
+    -- Grace tries to claim Ada's open develop.
+    perform set_config(
+      'request.jwt.claims',
+      '{"sub":"22222222-2222-2222-2222-222222222222"}', true);
+
+    begin
+      perform public.refund_credit(opened.photo_id);
+    exception when others then
+      refused := true;
+    end;
+    assert refused, 'somebody refunded a develop that was not theirs';
+
+    select credits into balance from public.profiles
+     where id = '22222222-2222-2222-2222-222222222222';
+    assert balance = 10, format('Grace gained a credit from Ada: %s', balance);
   end
   $$;
 rollback;
@@ -96,11 +195,11 @@ begin;
     failed boolean := false;
   begin
     for i in 1..10 loop
-      perform public.consume_credit();
+      perform public.begin_develop();
     end loop;
 
     begin
-      perform public.consume_credit();
+      perform public.begin_develop();
     exception when others then
       failed := true;
     end;

@@ -168,12 +168,18 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Spends one credit. Returns the balance left.
+-- Opens a develop: spends one credit and creates the photo it pays for, in a
+-- single statement pair that either both happen or neither does.
 --
--- The `credits > 0` predicate lives in the UPDATE itself, so two develops fired
--- at once cannot both pass a check-then-write and drive the balance negative.
-create function public.consume_credit()
-returns integer
+-- They are together on purpose. Spending separately from creating the row left
+-- a window where a credit was gone with nothing to attribute it to — and since
+-- a refund has to name the develop it reverses (see below), that credit could
+-- never be given back.
+--
+-- The `credits > 0` predicate lives inside the UPDATE, so two develops fired at
+-- once cannot both pass a check-then-write and drive the balance negative.
+create function public.begin_develop()
+returns table (photo_id uuid, credits integer)
 language plpgsql
 security definer
 set search_path = ''
@@ -181,30 +187,49 @@ as $$
 declare
   uid uuid := (select auth.uid());
   remaining integer;
+  created uuid;
 begin
   if uid is null then
     raise exception 'Not signed in.' using errcode = '28000';
   end if;
 
-  update public.profiles
-     set credits = credits - 1
-   where id = uid and credits > 0
-   returning credits into remaining;
+  -- Aliased because this function's OUT parameter is also called `credits`, so
+  -- an unqualified reference is ambiguous between the two.
+  update public.profiles p
+     set credits = p.credits - 1
+   where p.id = uid and p.credits > 0
+   returning p.credits into remaining;
 
   if remaining is null then
     raise exception 'You are out of photo credits.' using errcode = 'P0001';
   end if;
 
+  insert into public.photos (owner_id, status)
+  values (uid, 'developing')
+  returning id into created;
+
   insert into public.credit_events (user_id, delta, reason)
   values (uid, -1, 'develop');
 
-  return remaining;
+  photo_id := created;
+  credits := remaining;
+  return next;
 end;
 $$;
 
 -- Gives the credit back when a develop fails. A shot that never produced a
 -- photograph must not cost the user anything.
-create function public.refund_credit()
+--
+-- It takes the develop it is reversing, and that is the whole security of it.
+-- Granting EXECUTE to `authenticated` publishes this as an RPC endpoint that
+-- any signed-in user can call directly — PostgREST exposes every function in
+-- this schema. A version taking no argument simply added a credit, so anyone
+-- could mint an unlimited balance by calling it in a loop, which would defeat
+-- the entire point of metering a paid operation.
+--
+-- Flipping the row out of 'developing' in the same statement that authorises
+-- the refund is what makes it single-use: the second attempt matches no row.
+create function public.refund_credit(p_photo_id uuid)
 returns integer
 language plpgsql
 security definer
@@ -213,15 +238,28 @@ as $$
 declare
   uid uuid := (select auth.uid());
   remaining integer;
+  refunded uuid;
 begin
   if uid is null then
     raise exception 'Not signed in.' using errcode = '28000';
   end if;
 
-  update public.profiles
-     set credits = credits + 1
-   where id = uid
-   returning credits into remaining;
+  update public.photos
+     set status = 'failed'
+   where id = p_photo_id
+     and owner_id = uid
+     and status = 'developing'
+   returning id into refunded;
+
+  if refunded is null then
+    raise exception 'That develop is not open for a refund.'
+      using errcode = 'P0001';
+  end if;
+
+  update public.profiles p
+     set credits = p.credits + 1
+   where p.id = uid
+   returning p.credits into remaining;
 
   insert into public.credit_events (user_id, delta, reason)
   values (uid, 1, 'refund');
@@ -343,13 +381,13 @@ end;
 $$;
 
 -- These run as their definer, so they must not be callable by anonymous visitors.
-revoke execute on function public.consume_credit() from public, anon;
-revoke execute on function public.refund_credit() from public, anon;
+revoke execute on function public.begin_develop() from public, anon;
+revoke execute on function public.refund_credit(uuid) from public, anon;
 revoke execute on function public.redeem_promo_code(text) from public, anon;
 revoke execute on function public.admin_grant_credits(uuid, integer) from public, anon;
 
-grant execute on function public.consume_credit() to authenticated;
-grant execute on function public.refund_credit() to authenticated;
+grant execute on function public.begin_develop() to authenticated;
+grant execute on function public.refund_credit(uuid) to authenticated;
 grant execute on function public.redeem_promo_code(text) to authenticated;
 grant execute on function public.admin_grant_credits(uuid, integer) to authenticated;
 

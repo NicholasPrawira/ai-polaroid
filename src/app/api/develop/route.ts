@@ -112,46 +112,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "That photo is too large." }, { status: 413 });
   }
 
-  // Spend first. `consume_credit` does the check and the decrement in one
-  // statement, so this is also the concurrency guard.
-  const { data: remaining, error: creditError } =
-    await supabase.rpc("consume_credit");
+  // Spends the credit and creates the photo it pays for together, so there is
+  // never a spent credit with nothing to attribute it to — which is also what
+  // makes the refund below possible, since a refund has to name its develop.
+  const { data: opened, error: creditError } = await supabase
+    .rpc("begin_develop")
+    .single<{ photo_id: string; credits: number }>();
 
-  if (creditError) {
+  if (creditError || !opened) {
     return NextResponse.json(
       { error: "You are out of photo credits. Redeem a code to get more." },
       { status: 402 },
     );
   }
 
-  let credits = remaining as number;
+  const photoId = opened.photo_id;
+  let credits = opened.credits;
 
   /** Hands the credit back and marks the row, then answers the client. */
-  const fail = async (message: string, status: number, photoId?: string) => {
-    const { data: refunded } = await supabase.rpc("refund_credit");
+  const fail = async (message: string, status: number) => {
+    const { data: refunded } = await supabase.rpc("refund_credit", {
+      p_photo_id: photoId,
+    });
     if (typeof refunded === "number") credits = refunded;
 
-    if (photoId) {
-      await supabase
-        .from("photos")
-        .update({ status: "failed", error: message.slice(0, 500) })
-        .eq("id", photoId);
-    }
+    // refund_credit already moved the row to 'failed'; this records why.
+    await supabase
+      .from("photos")
+      .update({ error: message.slice(0, 500) })
+      .eq("id", photoId);
 
     return NextResponse.json({ error: message, credits }, { status });
   };
 
-  const { data: row, error: insertError } = await supabase
-    .from("photos")
-    .insert({ owner_id: user.id, status: "developing" })
-    .select("id")
-    .single();
-
-  if (insertError || !row) {
-    return fail("Could not start the develop.", 500);
-  }
-
-  const photoId = row.id as string;
   const rawPath = `${user.id}/${photoId}/raw.${extensionFor(capture.mediaType)}`;
 
   const { error: rawError } = await supabase.storage
@@ -159,7 +152,7 @@ export async function POST(req: NextRequest) {
     .upload(rawPath, capture.bytes, { contentType: capture.mediaType });
 
   if (rawError) {
-    return fail("Could not save the photo.", 502, photoId);
+    return fail("Could not save the photo.", 502);
   }
 
   await supabase.from("photos").update({ raw_path: rawPath }).eq("id", photoId);
@@ -184,15 +177,17 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       // The capture is already stored, so the roll is not lost — it just has an
-      // undeveloped frame on it.
-      await supabase.rpc("refund_credit");
+      // undeveloped frame on it. Refunding first, then re-marking the row:
+      // refund_credit only releases a develop that is still open, and moves it
+      // to 'failed' as it does.
+      await supabase.rpc("refund_credit", { p_photo_id: photoId });
       await supabase
         .from("photos")
         .update({ status: "queued" })
         .eq("id", photoId);
       return new NextResponse(null, { status: 499 });
     }
-    return fail("Could not reach OpenRouter.", 502, photoId);
+    return fail("Could not reach OpenRouter.", 502);
   }
 
   const raw = await upstream.text();
@@ -200,11 +195,7 @@ export async function POST(req: NextRequest) {
   try {
     body = JSON.parse(raw) as OpenRouterImageResponse;
   } catch {
-    return fail(
-      `Unexpected response from OpenRouter (${upstream.status}).`,
-      502,
-      photoId,
-    );
+    return fail(`Unexpected response from OpenRouter (${upstream.status}).`, 502);
   }
 
   if (!upstream.ok) {
@@ -212,7 +203,7 @@ export async function POST(req: NextRequest) {
       typeof body.error === "string"
         ? body.error
         : (body.error?.message ?? `OpenRouter returned ${upstream.status}.`);
-    return fail(message, upstream.status, photoId);
+    return fail(message, upstream.status);
   }
 
   const first = body.data?.[0];
@@ -227,10 +218,10 @@ export async function POST(req: NextRequest) {
     try {
       developed = await downloadImage(first.url);
     } catch {
-      return fail("Could not download the generated image.", 502, photoId);
+      return fail("Could not download the generated image.", 502);
     }
   } else {
-    return fail("OpenRouter returned no image data.", 502, photoId);
+    return fail("OpenRouter returned no image data.", 502);
   }
 
   const developedPath = `${user.id}/${photoId}/developed.${extensionFor(developed.mediaType)}`;
@@ -242,7 +233,7 @@ export async function POST(req: NextRequest) {
     });
 
   if (developedError) {
-    return fail("Could not save the developed photo.", 502, photoId);
+    return fail("Could not save the developed photo.", 502);
   }
 
   await supabase
