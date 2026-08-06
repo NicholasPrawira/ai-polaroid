@@ -240,6 +240,18 @@ export const FolderIcon = () => (
   </svg>
 );
 
+export const EditIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s}>
+    <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z" />
+  </svg>
+);
+
+export const TrashIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" />
+  </svg>
+);
+
 export const PlusIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
     <path d="M12 5v14M5 12h14" />

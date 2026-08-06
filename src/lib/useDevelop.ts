@@ -20,20 +20,32 @@ type State =
   | { status: "error"; message: string };
 
 /**
- * Drives the develop animation *concurrently* with the API request, rather than
- * after it. The bar eases toward HOLD_AT over the estimated duration and waits
- * there; once the image lands it completes over FINISH_MS. That way the
- * animation can never finish early and leave the user staring at a full bar.
+ * Drives the develop animation *concurrently* with `run`, rather than after
+ * it. The bar eases toward HOLD_AT over `estimatedMs` and waits there; once
+ * `run` resolves it completes over FINISH_MS. That way the animation can
+ * never finish early and leave the user staring at a full bar.
+ *
+ * `run` is what actually produces the developed image — an API round-trip
+ * for the AI path, or a plain local grade for the raw path. Either way the
+ * screen and pacing are the same; only the work behind it differs.
  */
-export function useDevelop(onComplete: (image: string) => void) {
+export function useDevelop(
+  run: (imageDataUrl: string, signal: AbortSignal) => Promise<string>,
+  onComplete: (image: string) => void,
+  estimatedMs: number = ESTIMATED_MS,
+) {
   const [state, setState] = useState<State>({ status: "idle" });
   const [progress, setProgress] = useState(0);
 
-  // Held in a ref so `start` stays stable across renders.
+  // Held in refs so `start` stays stable across renders.
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+  const runRef = useRef(run);
+  useEffect(() => {
+    runRef.current = run;
+  }, [run]);
 
   const rafRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -73,7 +85,7 @@ export function useDevelop(onComplete: (image: string) => void) {
 
         if (arrivedAtRef.current === null) {
           // Ease-out toward the hold point: quick at first, then patient.
-          const t = Math.min(1, (now - startedAtRef.current) / ESTIMATED_MS);
+          const t = Math.min(1, (now - startedAtRef.current) / estimatedMs);
           setProgress(HOLD_AT * (1 - Math.pow(1 - t, 2)));
         } else {
           const t = Math.min(1, (now - arrivedAtRef.current) / FINISH_MS);
@@ -88,19 +100,8 @@ export function useDevelop(onComplete: (image: string) => void) {
       };
       rafRef.current = requestAnimationFrame(tick);
 
-      fetch("/api/develop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageDataUrl }),
-        signal: controller.signal,
-      })
-        .then(async (res) => {
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body.error ?? `Develop failed (${res.status}).`);
-          }
-          return body.image as string;
-        })
+      runRef
+        .current(imageDataUrl, controller.signal)
         .then((image) => {
           if (controller.signal.aborted) return;
           setProgress((p) => {
@@ -126,7 +127,7 @@ export function useDevelop(onComplete: (image: string) => void) {
           });
         });
     },
-    [stopLoop],
+    [stopLoop, estimatedMs],
   );
 
   const reset = useCallback(() => {

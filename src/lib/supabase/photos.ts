@@ -58,22 +58,70 @@ export async function persistPhoto(
     imageUrl: imageDataUrl, // already have the bytes locally; skip the round-trip
     createdAt: new Date(row.created_at).getTime(),
     folderId: row.folder_id,
+    caption: row.caption,
+    storagePath: row.storage_path,
   };
+}
+
+export async function updatePhotoCaption(
+  supabase: Client,
+  photoId: string,
+  caption: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("photos")
+    .update({ caption })
+    .eq("id", photoId);
+  if (error) throw error;
+}
+
+/**
+ * Deletes the database row first — that's the part that actually decides
+ * whether the photo still "exists" to the user — then best-effort removes
+ * the storage object. A failure on the storage side just leaves an orphaned
+ * object behind rather than a photo the user thought they deleted.
+ */
+export async function deletePhoto(
+  supabase: Client,
+  photo: Shot,
+): Promise<void> {
+  const { error } = await supabase.from("photos").delete().eq("id", photo.id);
+  if (error) throw error;
+
+  await supabase.storage.from(BUCKET).remove([photo.storagePath]);
 }
 
 export async function createFolder(
   supabase: Client,
   userId: string,
   name: string,
+  color: string | null = null,
 ): Promise<Folder> {
   const { data, error } = await supabase
     .from("folders")
-    .insert({ user_id: userId, name })
+    .insert({ user_id: userId, name, color })
     .select()
     .single();
   if (error) throw error;
 
-  return { id: data.id, name: data.name, createdAt: new Date(data.created_at).getTime() };
+  return {
+    id: data.id,
+    name: data.name,
+    createdAt: new Date(data.created_at).getTime(),
+    color: data.color,
+  };
+}
+
+export async function updateFolder(
+  supabase: Client,
+  folderId: string,
+  patch: { name: string; color: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from("folders")
+    .update({ name: patch.name, color: patch.color })
+    .eq("id", folderId);
+  if (error) throw error;
 }
 
 export async function movePhotoToFolder(
@@ -131,12 +179,15 @@ export async function loadLibrary(
       imageUrl: signedByPath.get(p.storage_path)!,
       createdAt: new Date(p.created_at).getTime(),
       folderId: p.folder_id,
+      caption: p.caption,
+      storagePath: p.storage_path,
     }));
 
   const folders: Folder[] = foldersRes.data.map((f) => ({
     id: f.id,
     name: f.name,
     createdAt: new Date(f.created_at).getTime(),
+    color: f.color,
   }));
 
   return { shots, folders };

@@ -4,8 +4,8 @@ import { ReactNode } from "react";
 
 /**
  * A developed frame. Just the photograph with rounded corners — no paper, no
- * white border. A disposable camera returns prints, not instant film, so there
- * is nothing to write on.
+ * white border. (ResultScreen flips this card over to a matching back face
+ * for the shot's memory — that back face is its own element, not this one.)
  */
 export function PhotoCard({
   children,

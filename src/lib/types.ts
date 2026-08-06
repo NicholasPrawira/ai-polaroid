@@ -5,15 +5,41 @@ export type Shot = {
   createdAt: number;
   /** Which folder the photo lives in. `null` means unsorted. */
   folderId: string | null;
+  /** A short note about the moment. `null` until the user adds one. */
+  caption: string | null;
+  /** Path in the private `photos` storage bucket — needed to remove the
+   *  object itself when the photo is deleted, not just its database row. */
+  storagePath: string;
 };
 
 export type Folder = {
   id: string;
   name: string;
   createdAt: number;
+  /** Hex string, or `null` for the default neutral folder. */
+  color: string | null;
 };
 
+/** Curated so every option reads clearly against the dark surface — no
+ *  free-form picker, just a small set that's already been checked for
+ *  contrast. */
+export const FOLDER_COLORS = [
+  "#b97416", // film amber, matches the app's existing accent
+  "#4a72b0", // blue
+  "#5b8c5a", // green
+  "#a24a4a", // rust
+  "#8a6bb0", // violet
+] as const;
+
 export type Screen = "camera" | "processing" | "result" | "gallery";
+
+export type Profile = {
+  is_pro: boolean;
+  photo_quota: number;
+  /** Off means a capture is saved raw, straight from the camera — no AI
+   *  develop step, and no quota spent on it either. */
+  disposable_effect: boolean;
+};
 
 /** Groups a date the way a photo roll reads: today, yesterday, then the date. */
 export function dayLabel(ts: number): string {

@@ -19,18 +19,21 @@ export type Database = {
     Tables: {
       folders: {
         Row: {
+          color: string | null
           created_at: string
           id: string
           name: string
           user_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           id?: string
           name: string
           user_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -40,6 +43,7 @@ export type Database = {
       }
       photos: {
         Row: {
+          caption: string | null
           created_at: string
           folder_id: string | null
           id: string
@@ -47,6 +51,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           folder_id?: string | null
           id?: string
@@ -54,6 +59,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          caption?: string | null
           created_at?: string
           folder_id?: string | null
           id?: string
@@ -73,6 +79,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          disposable_effect: boolean
           email: string
           is_pro: boolean
           photo_quota: number
@@ -81,6 +88,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          disposable_effect?: boolean
           email: string
           is_pro?: boolean
           photo_quota?: number
@@ -89,6 +97,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          disposable_effect?: boolean
           email?: string
           is_pro?: boolean
           photo_quota?: number
@@ -104,6 +113,7 @@ export type Database = {
     Functions: {
       consume_photo_quota: { Args: never; Returns: boolean }
       delete_own_account: { Args: never; Returns: undefined }
+      set_disposable_effect: { Args: { enabled: boolean }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

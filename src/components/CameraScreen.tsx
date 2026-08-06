@@ -13,7 +13,7 @@ import {
   TimerIcon,
 } from "./Chrome";
 import { UserButton } from "./UserButton";
-import { Shot } from "@/lib/types";
+import { Profile, Shot } from "@/lib/types";
 
 /** Self-timer positions, cycled by tapping the chip. */
 const TIMER_STEPS = [0, 3, 10] as const;
@@ -24,12 +24,14 @@ export function CameraScreen({
   photoCount,
   folderCount,
   profile,
+  onToggleDisposableEffect,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
   photoCount: number;
   folderCount: number;
-  profile: { is_pro: boolean; photo_quota: number } | null;
+  profile: Profile | null;
+  onToggleDisposableEffect: (enabled: boolean) => void;
 }) {
   const { videoRef, facing, flip, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
@@ -141,6 +143,7 @@ export function CameraScreen({
             photoCount={photoCount}
             folderCount={folderCount}
             profile={profile}
+            onToggleDisposableEffect={onToggleDisposableEffect}
           />
         </div>
       </header>

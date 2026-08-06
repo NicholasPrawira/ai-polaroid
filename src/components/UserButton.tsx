@@ -12,11 +12,32 @@ import {
   LogOutIcon,
   ShieldIcon,
   SparkIcon,
+  TrashIcon,
   UserIcon,
 } from "./Chrome";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/auth/actions";
 import { ADMIN_EMAIL } from "@/lib/admin";
+import { Profile } from "@/lib/types";
+
+/** Small pill-track switch — the app has no toggle control elsewhere, so
+ *  this stays deliberately minimal rather than pulling in a UI library. */
+function Switch({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${
+        on ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"
+      }`}
+    >
+      <span
+        className={`absolute h-[18px] w-[18px] rounded-full bg-[var(--color-surface)] transition-transform ${
+          on ? "translate-x-[19px]" : "translate-x-[3px]"
+        }`}
+      />
+    </span>
+  );
+}
 
 const AdminIcon = () => (
   <svg
@@ -28,19 +49,6 @@ const AdminIcon = () => (
     strokeWidth="1.6"
   >
     <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-  >
-    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" />
   </svg>
 );
 
@@ -94,12 +102,14 @@ export function UserButton({
   photoCount,
   folderCount,
   profile,
+  onToggleDisposableEffect,
 }: {
   photoCount: number;
   folderCount: number;
   /** Owned by the page — a develop decrements it immediately, so this stays
    *  live instead of only refreshing whenever the sheet happens to open. */
-  profile: { is_pro: boolean; photo_quota: number } | null;
+  profile: Profile | null;
+  onToggleDisposableEffect: (enabled: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
@@ -365,6 +375,32 @@ export function UserButton({
                 )}
 
                 <ul className="px-3 py-1">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onToggleDisposableEffect(!(profile?.disposable_effect ?? true))
+                      }
+                      aria-pressed={profile?.disposable_effect ?? true}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                    >
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        <SparkIcon />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="type-body-md block">
+                          Disposable camera effect
+                        </span>
+                        <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
+                          {(profile?.disposable_effect ?? true)
+                            ? "on — photos are developed"
+                            : "off — photos save raw"}
+                        </span>
+                      </span>
+                      <Switch on={profile?.disposable_effect ?? true} />
+                    </button>
+                  </li>
+
                   <li>
                     <Link
                       href="/update-password"
