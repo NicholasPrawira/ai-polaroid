@@ -43,6 +43,7 @@ export type Database = {
       }
       photos: {
         Row: {
+          ai_generated: boolean
           caption: string | null
           created_at: string
           folder_id: string | null
@@ -51,6 +52,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_generated?: boolean
           caption?: string | null
           created_at?: string
           folder_id?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_generated?: boolean
           caption?: string | null
           created_at?: string
           folder_id?: string | null

@@ -9,6 +9,7 @@ import {
   DownloadIcon,
   RefreshIcon,
   SecondaryButton,
+  SparkIcon,
   TrashIcon,
 } from "./Chrome";
 import { UserButton } from "./UserButton";
@@ -276,8 +277,17 @@ export function ResultScreen({
                 style={{ boxShadow: "var(--shadow-film-lifted)" }}
               >
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6">
-                  <p className="type-viewfinder-label text-[var(--color-on-surface-variant)] opacity-70">
+                  <p className="type-viewfinder-label flex items-center gap-1.5 text-[var(--color-on-surface-variant)] opacity-70">
                     Memory
+                    {shot.aiGenerated && (
+                      <span
+                        aria-label="Developed with AI"
+                        title="Developed with AI"
+                        className="text-[var(--color-film-amber)]"
+                      >
+                        <SparkIcon size={13} />
+                      </span>
+                    )}
                   </p>
                   <MemoryField shot={shot} onUpdateCaption={onUpdateCaption} />
                 </div>

@@ -220,8 +220,8 @@ export const LogOutIcon = () => (
   </svg>
 );
 
-export const SparkIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+export const SparkIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s}>
     <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
     <path d="M18 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" />
   </svg>

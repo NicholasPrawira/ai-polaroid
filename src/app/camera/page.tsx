@@ -78,7 +78,9 @@ export default function Home() {
   // library. If the upload fails, the shot is still shown so the photo
   // isn't lost off-screen — it just won't survive a refresh. `consumedQuota`
   // is false for a raw capture (disposable effect off) — nothing was sent to
-  // OpenRouter, so nothing should come off the quota either.
+  // OpenRouter, so nothing should come off the quota either. It doubles as
+  // the "went through AI" flag persisted on the shot, since the two are the
+  // same thing at every call site.
   const finalizeShot = useCallback(
     (image: string, consumedQuota: boolean) => {
       const fallback: Shot = {
@@ -90,10 +92,11 @@ export default function Home() {
         // Never actually uploaded, so there's no object to point at — a
         // delete of this shot just clears local state (see handleDeletePhoto).
         storagePath: "",
+        aiGenerated: consumedQuota,
       };
 
       const promoted = userId
-        ? persistPhoto(supabase, userId, image, null).catch(() => fallback)
+        ? persistPhoto(supabase, userId, image, null, consumedQuota).catch(() => fallback)
         : Promise.resolve(fallback);
 
       promoted.then((shot) => {

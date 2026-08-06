@@ -10,6 +10,9 @@ export type Shot = {
   /** Path in the private `photos` storage bucket — needed to remove the
    *  object itself when the photo is deleted, not just its database row. */
   storagePath: string;
+  /** Went through the AI develop pipeline vs. a local raw grade — drives
+   *  the AI badge on the memory card back. */
+  aiGenerated: boolean;
 };
 
 export type Folder = {

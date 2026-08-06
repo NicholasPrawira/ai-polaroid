@@ -32,6 +32,7 @@ export async function persistPhoto(
   userId: string,
   imageDataUrl: string,
   folderId: string | null,
+  aiGenerated: boolean,
 ): Promise<Shot> {
   const blob = await dataUrlToBlob(imageDataUrl);
   const id = crypto.randomUUID();
@@ -44,7 +45,13 @@ export async function persistPhoto(
 
   const { data: row, error: insertError } = await supabase
     .from("photos")
-    .insert({ id, user_id: userId, folder_id: folderId, storage_path: path })
+    .insert({
+      id,
+      user_id: userId,
+      folder_id: folderId,
+      storage_path: path,
+      ai_generated: aiGenerated,
+    })
     .select()
     .single();
   if (insertError) {
@@ -60,6 +67,7 @@ export async function persistPhoto(
     folderId: row.folder_id,
     caption: row.caption,
     storagePath: row.storage_path,
+    aiGenerated: row.ai_generated,
   };
 }
 
@@ -181,6 +189,7 @@ export async function loadLibrary(
       folderId: p.folder_id,
       caption: p.caption,
       storagePath: p.storage_path,
+      aiGenerated: p.ai_generated,
     }));
 
   const folders: Folder[] = foldersRes.data.map((f) => ({
