@@ -53,9 +53,18 @@ export function AuthShell({
     <div className="relative z-2 w-full max-w-sm">
       <Link
         href="/"
-        className="type-viewfinder-label mb-8 block text-center text-[var(--color-on-surface-variant)] opacity-70 hover:opacity-100"
+        className="mb-8 flex justify-center opacity-70 hover:opacity-100"
       >
-        AI Disposable Camera
+        {/* The source art is white-on-transparent, made for the app's dark
+            screens — inverted here since this panel is the one light
+            surface in the app (matches the landing reveal panel). */}
+        <Image
+          src="/capture-memory-logo.png"
+          alt="Capture Memory"
+          width={1431}
+          height={478}
+          className="h-[76px] w-auto invert"
+        />
       </Link>
 
       <h1 className="type-headline-lg text-center">{title}</h1>

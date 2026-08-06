@@ -97,12 +97,27 @@ export function CameraScreen({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="grid grid-cols-[8px_1fr_auto] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
-        <span />
-        <h1 className="min-w-0 truncate text-center text-[15px] font-semibold">
-          AI Disposable Camera
+      {/* True centering (absolute, on the header's own width) only kicks in
+          at `sm:` and up. On a phone-width header the icon cluster alone is
+          ~170px — centering a logo big enough to read there means it
+          overlaps the icons; there's no size where centered-and-big both
+          fit under ~500px. Mobile falls back to normal flow instead:
+          smaller, left of the icons, same as before. */}
+      <header className="relative flex items-center gap-1 px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
+        <h1 className="flex h-10 items-center sm:absolute sm:top-1/2 sm:left-1/2 sm:h-auto sm:-translate-x-1/2 sm:-translate-y-1/2">
+          <Image
+            src="/capture-memory-logo.png"
+            alt="Capture Memory"
+            width={1431}
+            height={478}
+            priority
+            className="h-10 w-auto sm:h-16 sm:max-w-[42vw]"
+          />
         </h1>
-        <div className="flex items-center gap-1">
+        {/* `ml-auto` rather than `justify-end` on the header — that way this
+            still hugs the right edge whether `h1` is a flow sibling (mobile)
+            or removed from flow entirely (sm+, once it goes absolute). */}
+        <div className="ml-auto flex items-center gap-1">
           <ActionChip
             label="Self-timer"
             value={delay === 0 ? "off" : `${delay}s`}

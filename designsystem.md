@@ -146,3 +146,5 @@ The shape language is inspired by the rounded corners of instant film and the er
 - **Viewfinder HUD:** Ultra-thin (1px) charcoal lines for framing guides. No fills.
 - **Action Chips:** Small, charcoal-filled pills with Inter-label-style text in Secondary (Off-white) for toggling flash, timer, or lens.
 - **Input Fields:** Subtle borders (1px Primary @ 20% opacity) that darken when focused. Use the grain texture inside the field for consistency.
+
+--

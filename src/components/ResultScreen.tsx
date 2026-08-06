@@ -75,8 +75,14 @@ export function ResultScreen({
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
         <span />
-        <h1 className="min-w-0 truncate text-center text-[15px] font-semibold">
-          AI Disposable Camera
+        <h1 className="flex min-w-0 justify-center">
+          <Image
+            src="/capture-memory-logo.png"
+            alt="Capture Memory"
+            width={1431}
+            height={478}
+            className="h-14 w-auto"
+          />
         </h1>
         <UserButton
           photoCount={photoCount}

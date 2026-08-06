@@ -15,7 +15,7 @@ const courierPrime = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: "AI Disposable Camera",
+  title: "Capture Memory",
   description: "Capture a photo, let the AI develop it like a disposable camera.",
 };
 

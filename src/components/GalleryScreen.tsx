@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
 import { UserButton } from "./UserButton";
-import { ChevronLeftIcon, FolderIcon } from "./Chrome";
+import { AnimatedFolderCard } from "./AnimatedFolderCard";
+import { ChevronLeftIcon } from "./Chrome";
 import { Folder, Shot, dayLabel } from "@/lib/types";
 
 /** Deterministic tilt so a photo doesn't jump around between renders. */
@@ -199,58 +200,36 @@ export function GalleryScreen({
         </Empty>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-          <ul className="space-y-2">
-            {folders.map((folder) => {
-              const inside = byFolder.get(folder.id) ?? [];
-              const cover = [...inside].sort(
-                (a, b) => b.createdAt - a.createdAt,
-              )[0];
-              return (
-                <li key={folder.id}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenFolder(folder.id)}
-                    className="flex w-full items-center gap-4 rounded-md p-2 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-[var(--color-surface-container-high)]">
-                      {cover ? (
-                        <Image
-                          src={cover.imageUrl}
-                          alt=""
-                          width={56}
-                          height={56}
-                          unoptimized
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="grid h-full place-items-center text-[var(--color-outline)]">
-                          <FolderIcon />
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="type-body-md truncate">{folder.name}</p>
-                      <p className="type-viewfinder-label mt-0.5 text-[var(--color-on-surface-variant)]">
-                        {inside.length}{" "}
-                        {inside.length === 1 ? "photo" : "photos"}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
+          {folders.length > 0 && (
+            <div className="grid grid-cols-2">
+              {folders.map((folder) => {
+                const inside = [...(byFolder.get(folder.id) ?? [])].sort(
+                  (a, b) => b.createdAt - a.createdAt,
+                );
+                return (
+                  <AnimatedFolderCard
+                    key={folder.id}
+                    name={folder.name}
+                    preview={inside.slice(0, 3)}
+                    count={inside.length}
+                    onOpen={() => setOpenFolder(folder.id)}
+                    onSelectShot={onSelect}
+                  />
+                );
+              })}
+            </div>
+          )}
 
-            {unsorted.length > 0 && (
-              <li className="pt-2">
-                <p className="type-viewfinder-label px-2 pb-2 text-[var(--color-on-surface-variant)] opacity-70">
-                  unsorted · {unsorted.length}
-                </p>
-                <div className="px-2">
-                  <PhotoGrid shots={unsorted} onSelect={onSelect} />
-                </div>
-              </li>
-            )}
-          </ul>
+          {unsorted.length > 0 && (
+            <div className={folders.length > 0 ? "mt-4" : undefined}>
+              <p className="type-viewfinder-label px-2 pb-2 text-[var(--color-on-surface-variant)] opacity-70">
+                unsorted · {unsorted.length}
+              </p>
+              <div className="px-2">
+                <PhotoGrid shots={unsorted} onSelect={onSelect} />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

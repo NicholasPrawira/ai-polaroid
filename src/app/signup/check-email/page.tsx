@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 
-export const metadata: Metadata = { title: "Check your email — AI Disposable Camera" };
+export const metadata: Metadata = { title: "Check your email — Capture Memory" };
 
 export default function CheckEmailPage() {
   return (

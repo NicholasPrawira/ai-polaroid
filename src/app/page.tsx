@@ -4,7 +4,7 @@ import { CoverflowCarousel } from "@/components/CoverflowCarousel";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Disposable Camera",
+  title: "Capture Memory",
   description:
     "Point, shoot, wait. Whatever you capture becomes memory.",
 };
@@ -103,7 +103,7 @@ export default function Landing() {
                 src: scene.src,
                 alt: scene.label,
               }))}
-              label="Photos developed with AI Disposable Camera"
+              label="Photos developed with Capture Memory"
             />
           </div>
         </section>

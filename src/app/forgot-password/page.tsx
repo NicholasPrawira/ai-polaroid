@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
-export const metadata: Metadata = { title: "Reset password — AI Disposable Camera" };
+export const metadata: Metadata = { title: "Reset password — Capture Memory" };
 
 export default function ForgotPasswordPage() {
   return (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { UpdatePasswordForm } from "./UpdatePasswordForm";
 
-export const metadata: Metadata = { title: "Set a new password — AI Disposable Camera" };
+export const metadata: Metadata = { title: "Set a new password — Capture Memory" };
 
 export default function UpdatePasswordPage() {
   return (

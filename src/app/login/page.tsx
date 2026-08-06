@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = { title: "Sign in — AI Disposable Camera" };
+export const metadata: Metadata = { title: "Sign in — Capture Memory" };
 
 export default async function LoginPage({
   searchParams,

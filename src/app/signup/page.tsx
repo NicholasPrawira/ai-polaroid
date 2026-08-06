@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { SignupForm } from "./SignupForm";
 
-export const metadata: Metadata = { title: "Sign up — AI Disposable Camera" };
+export const metadata: Metadata = { title: "Sign up — Capture Memory" };
 
 export default function SignupPage() {
   return (
