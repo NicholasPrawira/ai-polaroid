@@ -108,9 +108,10 @@ export default function Home() {
         if (consumedQuota) {
           // /api/develop already decremented this server-side (that's what
           // gated the request in the first place) — mirror it locally so the
-          // count on screen doesn't wait for a refetch.
+          // count on screen doesn't wait for a refetch. Pro accounts spend
+          // from their own (admin-configurable) quota too now, same as free.
           setProfile((prev) =>
-            prev && !prev.is_pro
+            prev
               ? { ...prev, photo_quota: Math.max(0, prev.photo_quota - 1) }
               : prev,
           );

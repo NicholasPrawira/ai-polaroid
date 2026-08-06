@@ -64,9 +64,9 @@ const AdminIcon = () => (
 
 /**
  * Every develop costs $0.06 in inference, so quotas are the product, not a
- * throttle. Unlimited is not offerable: one heavy user would outspend their own
- * subscription within a week. Prices below carry roughly a third of margin at
- * full usage, which is the least that survives a user who actually maxes out.
+ * throttle. Nobody gets unlimited — free starts at 1 develop, and Pro's
+ * quota is set per-account by the admin panel rather than being a fixed
+ * number, so it isn't promised here as one.
  */
 const PLANS = [
   {
@@ -76,7 +76,7 @@ const PLANS = [
     period: "forever",
     current: true,
     features: [
-      "10 AI develops per month",
+      "1 AI develop",
       "Photos saved to your account",
       "Unlimited folders",
       "Save to your device",
@@ -89,7 +89,7 @@ const PLANS = [
     period: "per month",
     current: false,
     features: [
-      "100 AI develops per month",
+      "A larger AI develop quota",
       "Shared folders for events",
       "Full-resolution export",
     ],
@@ -338,10 +338,7 @@ export function UserButton({
                   {[
                     ["photos", photoCount],
                     ["folders", folderCount],
-                    [
-                      "left",
-                      profile ? (profile.is_pro ? "∞" : profile.photo_quota) : "…",
-                    ],
+                    ["left", profile ? profile.photo_quota : "…"],
                   ].map(([label, value]) => (
                     <div
                       key={label}

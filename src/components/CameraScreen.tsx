@@ -229,9 +229,7 @@ export function CameraScreen({
         {countdown !== null
           ? "tap shutter to cancel"
           : profile
-            ? profile.is_pro
-              ? "Unlimited photos"
-              : `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
+            ? `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
             : " "}
       </p>
     </div>

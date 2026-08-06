@@ -114,6 +114,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_stats: {
+        Args: never
+        Returns: {
+          ai_photos: number
+          pro_users: number
+          total_photos: number
+          total_users: number
+        }[]
+      }
       consume_photo_quota: { Args: never; Returns: boolean }
       delete_own_account: { Args: never; Returns: undefined }
       set_disposable_effect: { Args: { enabled: boolean }; Returns: undefined }
