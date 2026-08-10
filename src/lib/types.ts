@@ -1,6 +1,6 @@
 export type Shot = {
   id: string;
-  /** Data URL of the AI-developed photo. */
+  /** Data URL of the developed photo. */
   imageUrl: string;
   createdAt: number;
   /** Which folder the photo lives in. `null` means unsorted. */
@@ -10,9 +10,11 @@ export type Shot = {
   /** Path in the private `photos` storage bucket — needed to remove the
    *  object itself when the photo is deleted, not just its database row. */
   storagePath: string;
-  /** Went through the AI develop pipeline vs. a local raw grade — drives
-   *  the AI badge on the memory card back. */
-  aiGenerated: boolean;
+  /** Path in the private `voice-notes` storage bucket, or `null` if this
+   *  shot has no voice memory attached. */
+  voicePath: string | null;
+  /** Playable (signed) URL for the voice note, or `null` to match `voicePath`. */
+  voiceUrl: string | null;
 };
 
 export type Folder = {
@@ -39,9 +41,6 @@ export type Screen = "camera" | "processing" | "result" | "gallery";
 export type Profile = {
   is_pro: boolean;
   photo_quota: number;
-  /** Off means a capture is saved raw, straight from the camera — no AI
-   *  develop step, and no quota spent on it either. */
-  disposable_effect: boolean;
 };
 
 /** Groups a date the way a photo roll reads: today, yesterday, then the date. */

@@ -24,14 +24,12 @@ export function CameraScreen({
   photoCount,
   folderCount,
   profile,
-  onToggleDisposableEffect,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
-  onToggleDisposableEffect: (enabled: boolean) => void;
 }) {
   const { videoRef, facing, flip, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
@@ -143,7 +141,6 @@ export function CameraScreen({
             photoCount={photoCount}
             folderCount={folderCount}
             profile={profile}
-            onToggleDisposableEffect={onToggleDisposableEffect}
           />
         </div>
       </header>
@@ -229,7 +226,9 @@ export function CameraScreen({
         {countdown !== null
           ? "tap shutter to cancel"
           : profile
-            ? `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
+            ? profile.is_pro
+              ? "Unlimited photos"
+              : `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
             : " "}
       </p>
     </div>

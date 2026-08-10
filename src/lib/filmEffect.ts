@@ -58,12 +58,11 @@ function createBloomLayer(source: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 /**
- * Grades a raw capture into the disposable-camera-flash look: warm/olive
- * LUT color with crushed, tinted shadows, an underexposed vignette, faint
+ * Grades a capture into the disposable-camera-flash look: warm/olive LUT
+ * color with crushed, tinted shadows, an underexposed vignette, faint
  * chromatic aberration at the edges, soft highlight bloom, and coarse
- * monochrome film grain. This is the no-AI substitute for the develop
- * pipeline — same visual target (see lib/prompt.ts), reached with plain
- * canvas math instead of a model call.
+ * monochrome film grain. This is the app's one develop pipeline — every
+ * photo runs through it, on-device, no model call involved.
  */
 export async function applyDisposableLook(dataUrl: string, lut: Lut3D): Promise<string> {
   const img = await loadImage(dataUrl);

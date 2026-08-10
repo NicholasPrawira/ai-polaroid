@@ -7,6 +7,7 @@ import { Folder, Shot } from "@/lib/types";
 type Client = SupabaseClient<Database>;
 
 const BUCKET = "photos";
+const VOICE_BUCKET = "voice-notes";
 /** Signed URLs are re-issued on every load rather than cached, so this only
  *  needs to outlive one browsing session. */
 const SIGNED_URL_TTL_S = 60 * 60;
@@ -15,6 +16,12 @@ function extensionFor(mime: string): string {
   if (mime === "image/png") return "png";
   if (mime === "image/webp") return "webp";
   return "jpg";
+}
+
+function extensionForAudio(mime: string): string {
+  if (mime.includes("mp4")) return "m4a";
+  if (mime.includes("ogg")) return "ogg";
+  return "webm";
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
@@ -32,7 +39,6 @@ export async function persistPhoto(
   userId: string,
   imageDataUrl: string,
   folderId: string | null,
-  aiGenerated: boolean,
 ): Promise<Shot> {
   const blob = await dataUrlToBlob(imageDataUrl);
   const id = crypto.randomUUID();
@@ -50,7 +56,6 @@ export async function persistPhoto(
       user_id: userId,
       folder_id: folderId,
       storage_path: path,
-      ai_generated: aiGenerated,
     })
     .select()
     .single();
@@ -67,7 +72,8 @@ export async function persistPhoto(
     folderId: row.folder_id,
     caption: row.caption,
     storagePath: row.storage_path,
-    aiGenerated: row.ai_generated,
+    voicePath: null, // a fresh capture never has a voice note yet
+    voiceUrl: null,
   };
 }
 
@@ -84,6 +90,56 @@ export async function updatePhotoCaption(
 }
 
 /**
+ * Uploads a voice memory for an existing photo and points `photos.voice_path`
+ * at it, replacing whatever was there before. Path shape mirrors the photos
+ * bucket: `{user_id}/{photo_id}.{ext}` — same RLS pattern, separate bucket.
+ */
+export async function uploadVoiceNote(
+  supabase: Client,
+  userId: string,
+  photoId: string,
+  blob: Blob,
+): Promise<{ voicePath: string; voiceUrl: string }> {
+  const path = `${userId}/${photoId}.${extensionForAudio(blob.type || "audio/webm")}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(VOICE_BUCKET)
+    .upload(path, blob, { contentType: blob.type || "audio/webm", upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { error: updateError } = await supabase
+    .from("photos")
+    .update({ voice_path: path })
+    .eq("id", photoId);
+  if (updateError) throw updateError;
+
+  const { data: signed, error: signError } = await supabase.storage
+    .from(VOICE_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_S);
+  if (signError) throw signError;
+
+  return { voicePath: path, voiceUrl: signed.signedUrl };
+}
+
+/**
+ * Clears the DB pointer first — same reasoning as `deletePhoto` — then
+ * best-effort removes the storage object.
+ */
+export async function deleteVoiceNote(
+  supabase: Client,
+  photo: Shot,
+): Promise<void> {
+  if (!photo.voicePath) return;
+  const { error } = await supabase
+    .from("photos")
+    .update({ voice_path: null })
+    .eq("id", photo.id);
+  if (error) throw error;
+
+  await supabase.storage.from(VOICE_BUCKET).remove([photo.voicePath]);
+}
+
+/**
  * Deletes the database row first — that's the part that actually decides
  * whether the photo still "exists" to the user — then best-effort removes
  * the storage object. A failure on the storage side just leaves an orphaned
@@ -97,6 +153,9 @@ export async function deletePhoto(
   if (error) throw error;
 
   await supabase.storage.from(BUCKET).remove([photo.storagePath]);
+  if (photo.voicePath) {
+    await supabase.storage.from(VOICE_BUCKET).remove([photo.voicePath]);
+  }
 }
 
 export async function createFolder(
@@ -180,6 +239,20 @@ export async function loadLibrary(
     }
   }
 
+  const voicePaths = photosRes.data
+    .map((p) => p.voice_path)
+    .filter((p): p is string => p !== null);
+  const signedVoiceByPath = new Map<string, string>();
+  if (voicePaths.length > 0) {
+    const { data: signed, error: signError } = await supabase.storage
+      .from(VOICE_BUCKET)
+      .createSignedUrls(voicePaths, SIGNED_URL_TTL_S);
+    if (signError) throw signError;
+    for (const s of signed) {
+      if (s.signedUrl && s.path) signedVoiceByPath.set(s.path, s.signedUrl);
+    }
+  }
+
   const shots: Shot[] = photosRes.data
     .filter((p) => signedByPath.has(p.storage_path))
     .map((p) => ({
@@ -189,7 +262,8 @@ export async function loadLibrary(
       folderId: p.folder_id,
       caption: p.caption,
       storagePath: p.storage_path,
-      aiGenerated: p.ai_generated,
+      voicePath: p.voice_path,
+      voiceUrl: p.voice_path ? (signedVoiceByPath.get(p.voice_path) ?? null) : null,
     }));
 
   const folders: Folder[] = foldersRes.data.map((f) => ({

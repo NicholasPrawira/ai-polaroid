@@ -2,15 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * How long a develop is expected to take. The mockup showed 00:45, but measured
- * round-trips on grok-imagine-image-quality land around 7s. Estimating too high
- * makes the bar snap from a quarter-full straight to done, so this tracks the
- * real number with a little headroom for busier photos.
- */
-export const ESTIMATED_MS = 12_000;
+/** Default pacing if a caller doesn't pass its own `estimatedMs`. */
+export const ESTIMATED_MS = 5_000;
 
-/** Progress is parked here until the AI actually returns (PRD 5.3). */
+/** Progress is parked here until `run` actually resolves. */
 const HOLD_AT = 0.85;
 const FINISH_MS = 900;
 
@@ -25,9 +20,8 @@ type State =
  * `run` resolves it completes over FINISH_MS. That way the animation can
  * never finish early and leave the user staring at a full bar.
  *
- * `run` is what actually produces the developed image — an API round-trip
- * for the AI path, or a plain local grade for the raw path. Either way the
- * screen and pacing are the same; only the work behind it differs.
+ * `run` is what actually produces the developed image — a local grade
+ * today, but kept generic in case that ever needs to be a round-trip again.
  */
 export function useDevelop(
   run: (imageDataUrl: string, signal: AbortSignal) => Promise<string>,

@@ -14,11 +14,13 @@ import { createClient } from "@/lib/supabase/client";
 import {
   createFolder,
   deletePhoto,
+  deleteVoiceNote,
   loadLibrary,
   movePhotoToFolder,
   persistPhoto,
   updateFolder,
   updatePhotoCaption,
+  uploadVoiceNote,
 } from "@/lib/supabase/photos";
 
 export default function Home() {
@@ -37,14 +39,14 @@ export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [source, setSource] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  // Lazily fetched and cached — only the raw (disposable-effect-off) path
-  // ever needs it, and it's a ~1MB file not worth loading up front.
-  const rawLutRef = useRef<Promise<Lut3D> | null>(null);
-  const getRawLut = useCallback(() => {
-    if (!rawLutRef.current) {
-      rawLutRef.current = loadCubeLut("/Kodak-200.cube");
+  // Lazily fetched and cached — a ~1MB file not worth loading before it's
+  // actually needed.
+  const presetLutRef = useRef<Promise<Lut3D> | null>(null);
+  const getPresetLut = useCallback(() => {
+    if (!presetLutRef.current) {
+      presetLutRef.current = loadCubeLut("/Kodak-200.cube");
     }
-    return rawLutRef.current;
+    return presetLutRef.current;
   }, []);
 
   // /camera is auth-gated by proxy.ts, so a session is guaranteed by the
@@ -62,7 +64,7 @@ export default function Home() {
       });
       supabase
         .from("profiles")
-        .select("is_pro, photo_quota, disposable_effect")
+        .select("is_pro, photo_quota")
         .eq("user_id", id)
         .single()
         .then(({ data: p }) => {
@@ -76,13 +78,9 @@ export default function Home() {
 
   // Promotes a finished capture into a print, persisting it to the user's
   // library. If the upload fails, the shot is still shown so the photo
-  // isn't lost off-screen — it just won't survive a refresh. `consumedQuota`
-  // is false for a raw capture (disposable effect off) — nothing was sent to
-  // OpenRouter, so nothing should come off the quota either. It doubles as
-  // the "went through AI" flag persisted on the shot, since the two are the
-  // same thing at every call site.
+  // isn't lost off-screen — it just won't survive a refresh.
   const finalizeShot = useCallback(
-    (image: string, consumedQuota: boolean) => {
+    (image: string) => {
       const fallback: Shot = {
         id: Math.random().toString(36).slice(2, 10),
         imageUrl: image,
@@ -92,11 +90,12 @@ export default function Home() {
         // Never actually uploaded, so there's no object to point at — a
         // delete of this shot just clears local state (see handleDeletePhoto).
         storagePath: "",
-        aiGenerated: consumedQuota,
+        voicePath: null,
+        voiceUrl: null,
       };
 
       const promoted = userId
-        ? persistPhoto(supabase, userId, image, null, consumedQuota).catch(() => fallback)
+        ? persistPhoto(supabase, userId, image, null).catch(() => fallback)
         : Promise.resolve(fallback);
 
       promoted.then((shot) => {
@@ -105,115 +104,73 @@ export default function Home() {
         setViewingFromGallery(false);
         setOpenFlipped(false);
         setScreen("result");
-        if (consumedQuota) {
-          // /api/develop already decremented this server-side (that's what
-          // gated the request in the first place) — mirror it locally so the
-          // count on screen doesn't wait for a refetch. Pro accounts spend
-          // from their own (admin-configurable) quota too now, same as free.
-          setProfile((prev) =>
-            prev
-              ? { ...prev, photo_quota: Math.max(0, prev.photo_quota - 1) }
-              : prev,
-          );
-        }
+        // consume_photo_quota() already decremented this server-side
+        // (runDevelop below calls it before grading, and only proceeds if
+        // it returns true) — mirror it locally so the count on screen
+        // doesn't wait for a refetch.
+        setProfile((prev) =>
+          prev && !prev.is_pro
+            ? { ...prev, photo_quota: Math.max(0, prev.photo_quota - 1) }
+            : prev,
+        );
       });
     },
     [supabase, userId],
   );
 
   const handleComplete = useCallback(
-    (image: string) => finalizeShot(image, true),
+    (image: string) => finalizeShot(image),
     [finalizeShot],
   );
 
-  const runAiDevelop = useCallback(async (imageDataUrl: string, signal: AbortSignal) => {
-    const res = await fetch("/api/develop", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: imageDataUrl }),
-      signal,
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error ?? `Develop failed (${res.status}).`);
-    return body.image as string;
-  }, []);
+  const PRESET_DEVELOP_MS = 5_000;
 
-  const { state, progress, start, cancel } = useDevelop(runAiDevelop, handleComplete);
-
-  // Disposable effect off means no AI call and no quota spent — but the
-  // capture still goes through the same processing screen instead of just
-  // appearing, so it reads as a develop step rather than an instant preview.
-  const RAW_DEVELOP_MS = 5_000;
-  const handleRawComplete = useCallback(
-    (image: string) => finalizeShot(image, false),
-    [finalizeShot],
-  );
-  const runRawDevelop = useCallback(
+  // Every photo goes through the same local preset — a LUT grade plus
+  // vignette/grain/bloom (lib/filmEffect.ts) — instead of a per-photo AI
+  // call. Quota still gates it (same RPC /api/develop used to call
+  // server-side), called directly since there's no server round-trip left
+  // to do it from.
+  const runDevelop = useCallback(
     async (imageDataUrl: string) => {
+      const { data: allowed, error } = await supabase.rpc("consume_photo_quota");
+      if (error) throw error;
+      if (!allowed) throw new Error("You're out of photos. Ask the admin for more.");
+
       const [graded] = await Promise.all([
-        getRawLut()
+        getPresetLut()
           .then((lut) => applyDisposableLook(imageDataUrl, lut))
           .catch(() => imageDataUrl),
-        new Promise((resolve) => window.setTimeout(resolve, RAW_DEVELOP_MS)),
+        new Promise((resolve) => window.setTimeout(resolve, PRESET_DEVELOP_MS)),
       ]);
       return graded;
     },
-    [getRawLut],
+    [supabase, getPresetLut],
   );
-  const {
-    state: rawState,
-    progress: rawProgress,
-    start: startRaw,
-    cancel: cancelRaw,
-  } = useDevelop(runRawDevelop, handleRawComplete, RAW_DEVELOP_MS);
 
-  // Which of the two develops is behind the current "processing" screen —
-  // decides which hook's state/progress/retry to read from below.
-  const [isRawDevelop, setIsRawDevelop] = useState(false);
+  const { state, progress, start, cancel } = useDevelop(
+    runDevelop,
+    handleComplete,
+    PRESET_DEVELOP_MS,
+  );
 
   const handleCapture = useCallback(
     (dataUrl: string) => {
       setSource(dataUrl);
       setScreen("processing");
-      if (profile && !profile.disposable_effect) {
-        setIsRawDevelop(true);
-        startRaw(dataUrl);
-        return;
-      }
-      setIsRawDevelop(false);
       start(dataUrl);
     },
-    [start, startRaw, profile],
-  );
-
-  const handleToggleDisposableEffect = useCallback(
-    (enabled: boolean) => {
-      setProfile((prev) => (prev ? { ...prev, disposable_effect: enabled } : prev));
-      supabase.rpc("set_disposable_effect", { enabled }).then(({ error }) => {
-        if (error) {
-          // Revert — the toggle in the UI would otherwise lie about what's
-          // actually saved server-side.
-          setProfile((prev) =>
-            prev ? { ...prev, disposable_effect: !enabled } : prev,
-          );
-        }
-      });
-    },
-    [supabase],
+    [start],
   );
 
   const handleCancel = useCallback(() => {
     cancel();
-    cancelRaw();
     setSource(null);
     setScreen("camera");
-  }, [cancel, cancelRaw]);
+  }, [cancel]);
 
   const handleRetry = useCallback(() => {
-    if (!source) return;
-    if (isRawDevelop) startRaw(source);
-    else start(source);
-  }, [source, start, startRaw, isRawDevelop]);
+    if (source) start(source);
+  }, [source, start]);
 
   const handleCreateFolder = useCallback(
     async (name: string, color: string | null = null) => {
@@ -259,6 +216,31 @@ export default function Home() {
     [supabase],
   );
 
+  // Not optimistic like caption/folder edits — the caller needs the signed
+  // playback URL back, and a failed upload should surface as an error in
+  // the recorder UI rather than silently losing the recording.
+  const handleRecordVoice = useCallback(
+    async (shotId: string, blob: Blob) => {
+      if (!userId) throw new Error("Not signed in.");
+      const { voicePath, voiceUrl } = await uploadVoiceNote(supabase, userId, shotId, blob);
+      const patch = (s: Shot): Shot => (s.id === shotId ? { ...s, voicePath, voiceUrl } : s);
+      setShots((prev) => prev.map(patch));
+      setCurrent((prev) => (prev && prev.id === shotId ? patch(prev) : prev));
+    },
+    [supabase, userId],
+  );
+
+  const handleDeleteVoice = useCallback(
+    async (shot: Shot) => {
+      await deleteVoiceNote(supabase, shot);
+      const patch = (s: Shot): Shot =>
+        s.id === shot.id ? { ...s, voicePath: null, voiceUrl: null } : s;
+      setShots((prev) => prev.map(patch));
+      setCurrent((prev) => (prev && prev.id === shot.id ? patch(prev) : prev));
+    },
+    [supabase],
+  );
+
   const handleNewPhoto = useCallback(() => {
     setSource(null);
     setScreen("camera");
@@ -281,25 +263,23 @@ export default function Home() {
   );
 
   if (screen === "processing" && source) {
-    const active = isRawDevelop ? { state: rawState, progress: rawProgress } : { state, progress };
     return (
-      <main className="paper grain flex min-h-dvh flex-col">
+      <main className="paper grain flex h-dvh flex-col">
         <ProcessingScreen
           source={source}
-          progress={active.progress}
-          error={active.state.status === "error" ? active.state.message : null}
+          progress={progress}
+          error={state.status === "error" ? state.message : null}
           onCancel={handleCancel}
           onRetry={handleRetry}
-          raw={isRawDevelop}
         />
       </main>
     );
   }
 
   return (
-    <main className="paper grain flex min-h-dvh flex-col">
+    <main className="paper grain flex h-dvh flex-col">
       <div className="grain-layer" />
-      <div className="relative z-2 flex min-h-dvh flex-col">
+      <div className="relative z-2 flex min-h-0 flex-1 flex-col">
         {screen === "camera" && (
           <CameraScreen
             onCapture={handleCapture}
@@ -307,7 +287,6 @@ export default function Home() {
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
-            onToggleDisposableEffect={handleToggleDisposableEffect}
           />
         )}
 
@@ -320,11 +299,12 @@ export default function Home() {
             onFile={handleFile}
             onCreateFolder={handleCreateFolder}
             onUpdateCaption={handleUpdateCaption}
+            onRecordVoice={handleRecordVoice}
+            onDeleteVoice={handleDeleteVoice}
             onDelete={handleDeletePhoto}
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
-            onToggleDisposableEffect={handleToggleDisposableEffect}
             initialFlipped={openFlipped}
           />
         )}
@@ -342,9 +322,9 @@ export default function Home() {
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
-            onToggleDisposableEffect={handleToggleDisposableEffect}
             onUpdateFolder={handleUpdateFolder}
             onCreateFolder={handleCreateFolder}
+            onUpload={handleCapture}
           />
         )}
 

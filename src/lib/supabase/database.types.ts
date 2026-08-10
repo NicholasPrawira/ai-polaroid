@@ -43,31 +43,34 @@ export type Database = {
       }
       photos: {
         Row: {
-          ai_generated: boolean
+          camera_id: string | null
           caption: string | null
           created_at: string
           folder_id: string | null
           id: string
           storage_path: string
           user_id: string
+          voice_path: string | null
         }
         Insert: {
-          ai_generated?: boolean
+          camera_id?: string | null
           caption?: string | null
           created_at?: string
           folder_id?: string | null
           id?: string
           storage_path: string
           user_id: string
+          voice_path?: string | null
         }
         Update: {
-          ai_generated?: boolean
+          camera_id?: string | null
           caption?: string | null
           created_at?: string
           folder_id?: string | null
           id?: string
           storage_path?: string
           user_id?: string
+          voice_path?: string | null
         }
         Relationships: [
           {
@@ -82,7 +85,6 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          disposable_effect: boolean
           email: string
           is_pro: boolean
           photo_quota: number
@@ -91,7 +93,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          disposable_effect?: boolean
           email: string
           is_pro?: boolean
           photo_quota?: number
@@ -100,7 +101,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          disposable_effect?: boolean
           email?: string
           is_pro?: boolean
           photo_quota?: number
@@ -114,18 +114,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_stats: {
-        Args: never
-        Returns: {
-          ai_photos: number
-          pro_users: number
-          total_photos: number
-          total_users: number
-        }[]
-      }
       consume_photo_quota: { Args: never; Returns: boolean }
       delete_own_account: { Args: never; Returns: undefined }
-      set_disposable_effect: { Args: { enabled: boolean }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

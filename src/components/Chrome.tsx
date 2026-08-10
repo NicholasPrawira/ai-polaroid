@@ -180,6 +180,12 @@ export const DownloadIcon = () => (
   </svg>
 );
 
+export const UploadIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" {...s}>
+    <path d="M12 15V4m0 0l-4 4m4-4l4 4M4 19h16" />
+  </svg>
+);
+
 export const RefreshIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" {...s}>
     <path d="M4 10a8 8 0 0113.7-4.9L20 7M20 14a8 8 0 01-13.7 4.9L4 17" />
@@ -279,6 +285,32 @@ export const CloseIcon = () => (
 export const HourglassIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" {...s}>
     <path d="M7 3h10M7 21h10M8 3v3.5c0 2 4 3.5 4 5.5s-4 3.5-4 5.5V21M16 3v3.5c0 2-4 3.5-4 5.5s4 3.5 4 5.5V21" />
+  </svg>
+);
+
+export const MicIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6" />
+  </svg>
+);
+
+export const StopIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s}>
+    <rect x="6" y="6" width="12" height="12" rx="1.5" />
+  </svg>
+);
+
+export const PlayIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s} fill="currentColor">
+    <path d="M8 5.5v13l11-6.5z" />
+  </svg>
+);
+
+export const PauseIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...s} fill="currentColor">
+    <rect x="7" y="5" width="4" height="14" rx="1" />
+    <rect x="13" y="5" width="4" height="14" rx="1" />
   </svg>
 );
 

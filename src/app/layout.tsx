@@ -16,7 +16,7 @@ const courierPrime = Courier_Prime({
 
 export const metadata: Metadata = {
   title: "Capture Memory",
-  description: "Capture a photo, let the AI develop it like a disposable camera.",
+  description: "Capture a photo and let it develop like a disposable camera.",
 };
 
 export const viewport: Viewport = {

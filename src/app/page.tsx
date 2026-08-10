@@ -43,11 +43,7 @@ const FAQ = [
   },
   {
     q: "Is this AI generated?",
-    a: "We only use AI to polish the disposable camera look: grain, color, flash. It doesn't change the moment. Your actual photo goes in, and it just comes back developed like it was shot on real film.",
-  },
-  {
-    q: "Why not just use a filter?",
-    a: "A filter pastes the same look over every photo. We regenerate each one individually, so the grain, color, and flash react to what's actually in your shot instead of sitting on top of it.",
+    a: "No. Every photo gets the same disposable-camera preset — grain, color, vignette, flash — applied straight on your device. It doesn't change the moment, just the look, and nothing leaves your library to be generated anywhere else.",
   },
   {
     q: "Do I need an account?",
@@ -55,7 +51,7 @@ const FAQ = [
   },
   {
     q: "How many photos can I develop?",
-    a: "Every account starts with a set number of free develops. Need more? Reach out and we'll top you up.",
+    a: "Every account starts with a set number of free photos. Need more? Reach out and we'll top you up.",
   },
 ];
 

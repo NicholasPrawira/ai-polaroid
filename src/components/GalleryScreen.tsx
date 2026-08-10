@@ -5,8 +5,17 @@ import { UserButton } from "./UserButton";
 import { AnimatedFolderCard } from "./AnimatedFolderCard";
 import { FolderEditSheet } from "./FolderEditSheet";
 import { PhotoTile } from "./PhotoTile";
-import { ChevronLeftIcon, EditIcon, PlusIcon } from "./Chrome";
+import { ChevronLeftIcon, EditIcon, PlusIcon, UploadIcon } from "./Chrome";
 import { Folder, Profile, Shot, dayLabel } from "@/lib/types";
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 const GALLERY_TABS = [
   ["all", "all photos"],
@@ -146,9 +155,9 @@ export function GalleryScreen({
   photoCount,
   folderCount,
   profile,
-  onToggleDisposableEffect,
   onUpdateFolder,
   onCreateFolder,
+  onUpload,
 }: {
   shots: Shot[];
   folders: Folder[];
@@ -156,17 +165,34 @@ export function GalleryScreen({
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
-  onToggleDisposableEffect: (enabled: boolean) => void;
   onUpdateFolder: (
     folderId: string,
     patch: { name: string; color: string | null },
   ) => void;
   onCreateFolder: (name: string, color: string | null) => Promise<string>;
+  /** Runs an uploaded photo through the same develop pipeline as a camera
+   *  capture, so it comes back with the disposable-camera look. */
+  onUpload: (dataUrl: string) => void;
 }) {
   const [tab, setTab] = useState<"all" | "folders">("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editingActive, setEditingActive] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow picking the same file again later
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const dataUrl = await readAsDataUrl(file);
+      onUpload(dataUrl);
+    } catch {
+      setUploadError("Couldn't read that photo. Try a different file.");
+    }
+  }
 
   const byFolder = useMemo(() => {
     const map = new Map<string, Shot[]>();
@@ -236,15 +262,34 @@ export function GalleryScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="grid grid-cols-[40px_1fr_40px] items-center px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2">
-        <span />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Upload a photo"
+          className="grid h-10 w-10 place-items-center rounded-md text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container)]"
+        >
+          <UploadIcon />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChosen}
+          className="hidden"
+        />
         <h1 className="min-w-0 truncate text-center text-[17px] font-semibold">Gallery</h1>
         <UserButton
           photoCount={photoCount}
           folderCount={folderCount}
           profile={profile}
-          onToggleDisposableEffect={onToggleDisposableEffect}
         />
       </header>
+
+      {uploadError && (
+        <p className="type-timestamp-sm px-6 pb-2 text-center text-[var(--color-error)]">
+          {uploadError}
+        </p>
+      )}
 
       <div className="flex justify-center px-6 pt-1 pb-3">
         <GalleryTabs tab={tab} onChange={setTab} />
@@ -252,7 +297,10 @@ export function GalleryScreen({
 
       {tab === "all" ? (
         shots.length === 0 ? (
-          <Empty>No photos yet. Take a shot and let it develop.</Empty>
+          <Empty>
+            No photos yet. Take a shot and let it develop, or upload one from
+            your device.
+          </Empty>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             <PhotoGrid shots={shots} onSelect={onSelect} />

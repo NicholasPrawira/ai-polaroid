@@ -9,12 +9,12 @@ import {
   DownloadIcon,
   RefreshIcon,
   SecondaryButton,
-  SparkIcon,
   TrashIcon,
 } from "./Chrome";
 import { UserButton } from "./UserButton";
 import { FolderPicker } from "./FolderPicker";
 import { FolderIcon } from "./Chrome";
+import { VoiceNote } from "./VoiceNote";
 import { Folder, Profile, Shot } from "@/lib/types";
 import { prepareDownload, saveBlob } from "@/lib/export";
 
@@ -62,11 +62,12 @@ export function ResultScreen({
   onFile,
   onCreateFolder,
   onUpdateCaption,
+  onRecordVoice,
+  onDeleteVoice,
   onDelete,
   photoCount,
   folderCount,
   profile,
-  onToggleDisposableEffect,
   initialFlipped = false,
 }: {
   shot: Shot;
@@ -79,11 +80,12 @@ export function ResultScreen({
   onFile: (shotId: string, folderId: string | null) => void;
   onCreateFolder: (name: string) => Promise<string>;
   onUpdateCaption: (shotId: string, caption: string | null) => void;
+  onRecordVoice: (shotId: string, blob: Blob) => Promise<void>;
+  onDeleteVoice: (shot: Shot) => Promise<void>;
   onDelete: (shot: Shot) => Promise<void>;
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
-  onToggleDisposableEffect: (enabled: boolean) => void;
   /** Set when opened via the grid's swipe-to-flip gesture — the tile there
    *  already flipped once, so this opens straight to the memory side and
    *  grows in rather than just appearing, continuing that motion instead of
@@ -221,7 +223,6 @@ export function ResultScreen({
           photoCount={photoCount}
           folderCount={folderCount}
           profile={profile}
-          onToggleDisposableEffect={onToggleDisposableEffect}
         />
       </header>
 
@@ -277,18 +278,16 @@ export function ResultScreen({
                 style={{ boxShadow: "var(--shadow-film-lifted)" }}
               >
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6">
-                  <p className="type-viewfinder-label flex items-center gap-1.5 text-[var(--color-on-surface-variant)] opacity-70">
-                    Memory
-                    {shot.aiGenerated && (
-                      <span
-                        aria-label="Developed with AI"
-                        title="Developed with AI"
-                        className="text-[var(--color-film-amber)]"
-                      >
-                        <SparkIcon size={13} />
-                      </span>
-                    )}
-                  </p>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <p className="type-viewfinder-label text-[var(--color-on-surface-variant)] opacity-70">
+                      Memory
+                    </p>
+                    <VoiceNote
+                      voiceUrl={shot.voiceUrl}
+                      onRecord={(blob) => onRecordVoice(shot.id, blob)}
+                      onDelete={() => onDeleteVoice(shot)}
+                    />
+                  </div>
                   <MemoryField shot={shot} onUpdateCaption={onUpdateCaption} />
                 </div>
 

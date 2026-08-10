@@ -17,40 +17,7 @@ import {
 } from "./Chrome";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/auth/actions";
-import { ADMIN_EMAIL } from "@/lib/admin";
 import { Profile } from "@/lib/types";
-
-/** Small pill-track switch — the app has no toggle control elsewhere, so
- *  this stays deliberately minimal rather than pulling in a UI library. */
-function Switch({ on }: { on: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${
-        on ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"
-      }`}
-    >
-      <span
-        className={`absolute h-[18px] w-[18px] rounded-full bg-[var(--color-surface)] transition-transform ${
-          on ? "translate-x-[19px]" : "translate-x-[3px]"
-        }`}
-      />
-    </span>
-  );
-}
-
-const AdminIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-  >
-    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
-  </svg>
-);
 
 /**
  * Account menu.
@@ -62,12 +29,6 @@ const AdminIcon = () => (
  * silently doing nothing.
  */
 
-/**
- * Every develop costs $0.06 in inference, so quotas are the product, not a
- * throttle. Nobody gets unlimited — free starts at 1 develop, and Pro's
- * quota is set per-account by the admin panel rather than being a fixed
- * number, so it isn't promised here as one.
- */
 const PLANS = [
   {
     id: "free",
@@ -76,7 +37,7 @@ const PLANS = [
     period: "forever",
     current: true,
     features: [
-      "1 AI develop",
+      "1 photo",
       "Photos saved to your account",
       "Unlimited folders",
       "Save to your device",
@@ -89,7 +50,7 @@ const PLANS = [
     period: "per month",
     current: false,
     features: [
-      "A larger AI develop quota",
+      "Unlimited photos",
       "Shared folders for events",
       "Full-resolution export",
     ],
@@ -102,14 +63,12 @@ export function UserButton({
   photoCount,
   folderCount,
   profile,
-  onToggleDisposableEffect,
 }: {
   photoCount: number;
   folderCount: number;
   /** Owned by the page — a develop decrements it immediately, so this stays
    *  live instead of only refreshing whenever the sheet happens to open. */
   profile: Profile | null;
-  onToggleDisposableEffect: (enabled: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
@@ -285,9 +244,8 @@ export function UserButton({
                 ))}
 
                 <p className="type-viewfinder-label pt-1 leading-4 text-[var(--color-on-surface-variant)] opacity-60">
-                  Each develop costs $0.06 to run, so quotas are the product
-                  rather than a throttle. Prices are a sketch — nothing is
-                  charged, and no payment provider is connected.
+                  Prices are a sketch — nothing is charged, and no payment
+                  provider is connected.
                 </p>
               </div>
             ) : view === "delete" ? (
@@ -338,7 +296,10 @@ export function UserButton({
                   {[
                     ["photos", photoCount],
                     ["folders", folderCount],
-                    ["left", profile ? profile.photo_quota : "…"],
+                    [
+                      "left",
+                      profile ? (profile.is_pro ? "∞" : profile.photo_quota) : "…",
+                    ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -373,32 +334,6 @@ export function UserButton({
 
                 <ul className="px-3 py-1">
                   <li>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onToggleDisposableEffect(!(profile?.disposable_effect ?? true))
-                      }
-                      aria-pressed={profile?.disposable_effect ?? true}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                    >
-                      <span className="text-[var(--color-on-surface-variant)]">
-                        <SparkIcon />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="type-body-md block">
-                          Disposable camera effect
-                        </span>
-                        <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
-                          {(profile?.disposable_effect ?? true)
-                            ? "on — photos are developed"
-                            : "off — photos save raw"}
-                        </span>
-                      </span>
-                      <Switch on={profile?.disposable_effect ?? true} />
-                    </button>
-                  </li>
-
-                  <li>
                     <Link
                       href="/update-password"
                       className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
@@ -412,21 +347,6 @@ export function UserButton({
                       <ChevronRightIcon />
                     </Link>
                   </li>
-
-                  {email === ADMIN_EMAIL && (
-                    <li>
-                      <Link
-                        href="/admin"
-                        className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                      >
-                        <span className="text-[var(--color-on-surface-variant)]">
-                          <AdminIcon />
-                        </span>
-                        <span className="type-body-md flex-1">Admin</span>
-                        <ChevronRightIcon />
-                      </Link>
-                    </li>
-                  )}
 
                   {rows.map((row) => (
                     <li key={row.id}>

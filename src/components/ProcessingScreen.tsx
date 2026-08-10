@@ -14,15 +14,12 @@ export function ProcessingScreen({
   error,
   onCancel,
   onRetry,
-  raw = false,
 }: {
   source: string;
   progress: number;
   error: string | null;
   onCancel: () => void;
   onRetry: () => void;
-  /** Disposable-effect-off capture: graded locally, no AI round-trip. */
-  raw?: boolean;
 }) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--color-darkroom)] text-[var(--color-on-darkroom)]">
@@ -84,9 +81,8 @@ export function ProcessingScreen({
           </button>
         ) : (
           <p className="type-viewfinder-label mx-auto max-w-[34ch] text-center leading-4 opacity-45">
-            {raw
-              ? "Please wait while the film develops. Do not close the application."
-              : "Please wait while the AI develops the film. Do not close the application."}
+            Please wait while the film develops. Do not close the
+            application.
           </p>
         )}
       </div>
