@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 
 export type AuthState = { error: string } | null;
 
@@ -17,7 +18,9 @@ export async function login(
 ): Promise<AuthState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/camera");
+  // Attacker-controllable via `/login?next=…`, and `redirect()` honours
+  // absolute URLs — so this has to be narrowed to a same-origin path.
+  const next = safeRedirectPath(formData.get("next")?.toString());
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({

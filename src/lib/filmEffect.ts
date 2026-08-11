@@ -1,5 +1,35 @@
 import { loadImage, sampleLut, type Lut3D } from "./lut";
 
+/**
+ * Longest edge any image is graded at. The camera itself shoots 1024²
+ * (CAPTURE_SIZE in useCamera.ts), so this only ever bites on an uploaded
+ * file — 4x the native size, well past what the print needs.
+ *
+ * Without a cap, dimensions came straight from `naturalWidth/Height`, and
+ * this pipeline allocates several full-size buffers per photo (source
+ * canvas + getImageData + createImageData + bloom layers). A 12000×12000
+ * PNG — a ~2MB file, since a file-size limit doesn't bound pixel count —
+ * would ask for roughly 576MB per buffer and take the tab down with it.
+ */
+const MAX_DEVELOP_EDGE = 4096;
+
+/** Scales `w`×`h` down to fit `maxEdge`, preserving aspect ratio. Images
+ *  already inside the bound are returned untouched, so the common path
+ *  (a 1024² capture) is unaffected. */
+function fitWithin(
+  w: number,
+  h: number,
+  maxEdge: number,
+): { width: number; height: number } {
+  const longest = Math.max(w, h);
+  if (longest <= maxEdge) return { width: w, height: h };
+  const scale = maxEdge / longest;
+  return {
+    width: Math.max(1, Math.round(w * scale)),
+    height: Math.max(1, Math.round(h * scale)),
+  };
+}
+
 function clamp01(x: number): number {
   return x < 0 ? 0 : x > 1 ? 1 : x;
 }
@@ -66,15 +96,21 @@ function createBloomLayer(source: HTMLCanvasElement): HTMLCanvasElement {
  */
 export async function applyDisposableLook(dataUrl: string, lut: Lut3D): Promise<string> {
   const img = await loadImage(dataUrl);
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
+  const { width: w, height: h } = fitWithin(
+    img.naturalWidth,
+    img.naturalHeight,
+    MAX_DEVELOP_EDGE,
+  );
 
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable.");
-  ctx.drawImage(img, 0, 0);
+  // Drawn at the (possibly reduced) target size rather than 1:1, so an
+  // oversized upload is resampled down here instead of allocating full-res
+  // buffers for the rest of the pipeline.
+  ctx.drawImage(img, 0, 0, w, h);
 
   const src = ctx.getImageData(0, 0, w, h);
   const srcPx = src.data;

@@ -33,8 +33,10 @@ export function FolderPicker({
       onPick(id);
       setName("");
       onClose();
-    } catch {
-      setError("Could not create the folder. Try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not create the folder. Try again.",
+      );
     } finally {
       setCreating(false);
     }
@@ -102,8 +104,16 @@ export function FolderPicker({
 
         <form
           onSubmit={submit}
-          className="flex items-center gap-2 border-t border-[var(--color-outline-variant)] px-5 pt-4"
+          className="border-t border-[var(--color-outline-variant)] px-5 pt-4"
         >
+          {/* Was tracked in state but never rendered, so a failed create
+              looked like nothing happened at all. */}
+          {error && (
+            <p className="type-timestamp-sm mb-3 text-center text-[var(--color-error)]">
+              {error}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, 40))}
@@ -113,12 +123,15 @@ export function FolderPicker({
           />
           <button
             type="submit"
-            disabled={!name.trim()}
+            /* `creating` was tracked but never used to gate the button, so a
+               double-tap could fire two creates for the same name. */
+            disabled={!name.trim() || creating}
             aria-label="Create folder"
             className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-[var(--color-primary)] text-[var(--color-on-primary)] disabled:opacity-40"
           >
             <PlusIcon />
           </button>
+          </div>
         </form>
       </div>
     </div>

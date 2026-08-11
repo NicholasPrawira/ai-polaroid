@@ -8,6 +8,16 @@ import { PhotoTile } from "./PhotoTile";
 import { ChevronLeftIcon, EditIcon, PlusIcon, UploadIcon } from "./Chrome";
 import { Folder, Profile, Shot, dayLabel } from "@/lib/types";
 
+/** Matches the `photos` bucket's own 15MB limit — no point reading bytes
+ *  the upload would reject anyway, and it keeps a huge pick from being
+ *  base64'd into memory (a data URL is ~1.33x the file) before we find out. */
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+/** Types the bucket's `allowed_mime_types` accepts. `accept="image/*"` on
+ *  the input is only a picker hint — the file itself still has to be
+ *  checked, since a user can pick "all files" in most OS dialogs. */
+const ACCEPTED_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -188,6 +198,19 @@ export function GalleryScreen({
     e.target.value = ""; // allow picking the same file again later
     if (!file) return;
     setUploadError(null);
+
+    // Check before reading: `readAsDataUrl` pulls the whole file into
+    // memory, so validating afterwards would be too late to prevent the
+    // allocation this is guarding against.
+    if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
+      setUploadError("That file isn't a JPEG, PNG, or WebP photo.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadError("That photo is over 15MB. Try a smaller one.");
+      return;
+    }
+
     try {
       const dataUrl = await readAsDataUrl(file);
       onUpload(dataUrl);

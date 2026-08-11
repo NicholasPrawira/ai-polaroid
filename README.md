@@ -21,14 +21,15 @@ on Vercel is HTTPS already.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `OPENROUTER_API_KEY` | yes | Server-only, never sent to the client. |
-| `OPENROUTER_IMAGE_MODEL` | no | Defaults to `x-ai/grok-imagine-image-quality`. |
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Project API URL. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Safe to expose — restricted by RLS, not secrecy. |
 | `NEXT_PUBLIC_SITE_URL` | no | Used to build email links. Defaults to `http://localhost:3000`. Set to the real domain in production. |
 
-Image-capable models are only listed when you filter for them —
-`/api/v1/models?output_modalities=image`. The unfiltered model list omits them.
+Developing is entirely on-device (canvas + a `.cube` LUT), so the app makes
+no model calls and needs no AI provider key. The former `OPENROUTER_API_KEY`
+/ `OPENROUTER_IMAGE_MODEL` variables are no longer read anywhere — if one is
+still set in a deployment or a local `.env.local`, revoke the key at the
+provider and delete the lines.
 
 ## Auth
 

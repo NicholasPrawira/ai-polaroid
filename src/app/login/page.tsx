@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in — Capture Memory" };
@@ -35,7 +36,9 @@ export default async function LoginPage({
           .
         </p>
       )}
-      <LoginForm next={next ?? "/camera"} />
+      {/* Sanitised here as well as in the action, so an off-site value is
+          never even embedded in the form. */}
+      <LoginForm next={safeRedirectPath(next)} />
     </AuthShell>
   );
 }
