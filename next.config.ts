@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+/** These headers apply in development as well as production, so anything
+ *  the dev server itself needs has to be allowed for — see `'unsafe-eval'`
+ *  below. */
+const isDev = process.env.NODE_ENV === "development";
+
 /** Origin the browser talks to directly: auth, PostgREST, and the signed
  *  storage URLs photos and voice notes are served from. Read from the same
  *  env var the clients use rather than hardcoded, so pointing at a
@@ -46,7 +51,11 @@ const supabaseOrigin = (() => {
 const csp = [
   "default-src 'self'",
   // See the note above: strict script-src needs dynamic rendering.
-  "script-src 'self' 'unsafe-inline'",
+  // `'unsafe-eval'` is dev-only — React uses eval() there for debugging
+  // features like rebuilding callstacks across environments, and without
+  // it the dev overlay throws. React never uses eval() in production, so
+  // the production policy stays without it.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   // next/font/google self-hosts at build time, so no external font origin.
   "font-src 'self'",
