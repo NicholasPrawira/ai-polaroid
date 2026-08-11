@@ -431,9 +431,17 @@ body {
   /* Not min-height: 100svh — with the carousel and FAQ both now living in
      the reveal panel, forcing every section to a full screen just padded
      out the space between them. `.landing-reveal` itself still guarantees
-     the panel as a whole is at least one screen tall on first reveal. */
+     the panel as a whole is at least one screen tall on first reveal. The
+     pitch section below is the one deliberate exception. */
   padding: 3rem 1.5rem 1.5rem;
   text-align: center;
+}
+
+/* The pitch/CTA is its own full screen — everything else (how it works,
+   showcase, FAQ) only comes into view once the user actually scrolls
+   past it. */
+.landing-pitch-section {
+  min-height: 100svh;
 }
 
 /* Sits inside the same flex section as the pitch/CTA/sign-in, below "how it

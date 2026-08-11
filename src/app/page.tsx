@@ -161,7 +161,7 @@ export default function Landing() {
       </header>
 
       <main className="landing-reveal">
-        <section>
+        <section className="landing-pitch-section">
           <p className="landing-pitch">
             Whatever you capture
             <br />
@@ -171,7 +171,9 @@ export default function Landing() {
           <p className="landing-signin">
             Already have an account? <Link href="/login">Sign in</Link>
           </p>
+        </section>
 
+        <section>
           <div className="landing-how">
             <h2 className="landing-how-heading">How it works</h2>
             <ol className="landing-how-list">
