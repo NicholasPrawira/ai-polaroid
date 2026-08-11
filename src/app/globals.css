@@ -220,6 +220,30 @@ body {
   animation: shutter-flash 420ms ease-out forwards;
 }
 
+@keyframes voice-bar {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: var(--voice-bar-peak, 14px);
+  }
+}
+
+@utility animate-voice-bar {
+  animation: voice-bar 0.9s ease-in-out infinite;
+}
+
+@keyframes voice-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-voice-spin {
+  animation: voice-spin 2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -389,6 +413,69 @@ body {
   width: 100%;
   max-width: 640px;
   margin-top: 0.5rem;
+}
+
+/* --- How it works: three steps between the showcase and the FAQ. Numbers
+   in the HUD mono face tie it back to the camera's own readouts instead of
+   reading like a generic marketing grid. --- */
+
+.landing-how {
+  padding-top: 0.5rem;
+  padding-bottom: 1rem;
+}
+
+.landing-how-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(28 28 29 / 0.55);
+}
+
+.landing-how-list {
+  display: grid;
+  width: 100%;
+  max-width: 880px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.landing-how-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.landing-how-n {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: rgb(28 28 29 / 0.4);
+}
+
+.landing-how-item h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.landing-how-item p {
+  margin: 0;
+  color: rgb(28 28 29 / 0.68);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .landing-how-list {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    gap: 1.5rem;
+  }
 }
 
 /* --- FAQ: its own section below the showcase, native <details> so it

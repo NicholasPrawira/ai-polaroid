@@ -5,6 +5,10 @@ import { MicIcon, PauseIcon, PlayIcon, StopIcon, TrashIcon } from "./Chrome";
 
 const MAX_DURATION_S = 30;
 
+/** Peak height (px) each bar eases up to — varied so the row reads as a
+ *  waveform rather than identical bars ticking in lockstep. */
+const VOICE_BAR_PEAKS = [8, 13, 6, 15, 9, 12, 7, 14, 8, 11, 6, 13];
+
 function pickMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
   for (const type of ["audio/webm", "audio/mp4", "audio/ogg"]) {
@@ -158,32 +162,54 @@ export function VoiceNote({
     );
   }
 
-  if (phase === "recording") {
-    return (
-      <button
-        type="button"
-        onClick={stopRecording}
-        aria-label="Stop recording"
-        className="flex items-center gap-1.5 rounded-full bg-[var(--color-error)] px-2.5 py-1 text-white"
-      >
-        <StopIcon size={12} />
-        <span className="type-timestamp-sm tabular-nums">
-          {formatTime(elapsed)}
-        </span>
-      </button>
-    );
-  }
+  const listening = phase === "recording";
 
   return (
     <div className="flex items-center gap-1.5">
       <button
         type="button"
-        onClick={startRecording}
+        onClick={listening ? stopRecording : startRecording}
         disabled={phase === "uploading"}
-        aria-label="Record a voice note"
-        className="grid h-7 w-7 place-items-center rounded-full text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container)] disabled:opacity-50"
+        aria-label={listening ? "Stop recording" : "Record a voice note"}
+        aria-pressed={listening}
+        className={`flex items-center overflow-hidden rounded-full border p-1.5 transition-[padding] duration-300 disabled:opacity-50 ${
+          listening
+            ? "border-[var(--color-error)] pr-2.5 text-[var(--color-error)]"
+            : "border-transparent text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container)]"
+        }`}
       >
-        <MicIcon size={15} />
+        <span className="grid h-4 w-4 shrink-0 place-items-center">
+          {listening ? (
+            <StopIcon size={12} />
+          ) : (
+            <MicIcon size={15} />
+          )}
+        </span>
+
+        {/* Frequency bars + timer — only takes up space while recording,
+            so the pill grows open instead of the icon just swapping. */}
+        <span
+          className={`flex items-center gap-2 overflow-hidden transition-[width,margin] duration-300 ${
+            listening ? "ml-2 w-[104px]" : "ml-0 w-0"
+          }`}
+        >
+          <span className="flex items-center gap-0.5" aria-hidden>
+            {VOICE_BAR_PEAKS.map((peak, i) => (
+              <span
+                key={i}
+                className={`w-0.5 rounded-full bg-current ${listening ? "animate-voice-bar" : ""}`}
+                style={{
+                  height: 3,
+                  ["--voice-bar-peak" as string]: `${peak}px`,
+                  animationDelay: `${i * 90}ms`,
+                }}
+              />
+            ))}
+          </span>
+          <span className="type-timestamp-sm w-9 tabular-nums">
+            {formatTime(elapsed)}
+          </span>
+        </span>
       </button>
       {error && (
         <span className="type-timestamp-sm text-[var(--color-error)]">{error}</span>

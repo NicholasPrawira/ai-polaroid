@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-  CreditCardIcon,
   KeyIcon,
   LogOutIcon,
   ShieldIcon,
@@ -19,60 +17,50 @@ import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/auth/actions";
 import { Profile } from "@/lib/types";
 
+/** Small pill-track switch — the app has no toggle control elsewhere, so
+ *  this stays deliberately minimal rather than pulling in a UI library. */
+function Switch({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${
+        on ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"
+      }`}
+    >
+      <span
+        className={`absolute h-[18px] w-[18px] rounded-full bg-[var(--color-surface)] transition-transform ${
+          on ? "translate-x-[19px]" : "translate-x-[3px]"
+        }`}
+      />
+    </span>
+  );
+}
+
 /**
  * Account menu.
  *
  * Only renders inside /camera, which middleware gates to signed-in users — so
  * a session can be assumed present. Change password, Sign out, and the
- * photo/folder counts are real. Billing still isn't wired to anything,
- * because there's no payment provider; it says so when tapped rather than
- * silently doing nothing.
+ * photo/folder counts are real.
  */
 
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    current: true,
-    features: [
-      "1 photo",
-      "Photos saved to your account",
-      "Unlimited folders",
-      "Save to your device",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$9",
-    period: "per month",
-    current: false,
-    features: [
-      "Unlimited photos",
-      "Shared folders for events",
-      "Full-resolution export",
-    ],
-  },
-] as const;
-
-type View = "menu" | "pricing" | "delete";
+type View = "menu" | "delete";
 
 export function UserButton({
   photoCount,
   folderCount,
   profile,
+  onTogglePreset,
 }: {
   photoCount: number;
   folderCount: number;
   /** Owned by the page — a develop decrements it immediately, so this stays
    *  live instead of only refreshing whenever the sheet happens to open. */
   profile: Profile | null;
+  onTogglePreset: (enabled: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
-  const [pending, setPending] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -91,7 +79,6 @@ export function UserButton({
   function close() {
     setOpen(false);
     setView("menu");
-    setPending(null);
     setDeleteError(null);
   }
 
@@ -132,11 +119,6 @@ export function UserButton({
     }
   }
 
-  const rows = [
-    { id: "billing", label: "Billing & invoices", icon: <CreditCardIcon /> },
-    { id: "privacy", label: "Privacy & data", icon: <ShieldIcon /> },
-  ];
-
   return (
     <>
       <button
@@ -173,11 +155,7 @@ export function UserButton({
                 </button>
               )}
               <h2 className="flex-1 text-[15px] font-semibold">
-                {view === "pricing"
-                  ? "Plans"
-                  : view === "delete"
-                    ? "Delete account"
-                    : "Account"}
+                {view === "delete" ? "Delete account" : "Account"}
               </h2>
               <button
                 type="button"
@@ -189,66 +167,7 @@ export function UserButton({
               </button>
             </div>
 
-            {view === "pricing" ? (
-              <div className="space-y-3 px-5 py-5">
-                {PLANS.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`rounded-md border p-4 ${
-                      plan.current
-                        ? "border-[var(--color-on-surface)]"
-                        : "border-[var(--color-outline-variant)]"
-                    }`}
-                  >
-                    <div className="flex items-baseline justify-between">
-                      <h3 className="type-body-md font-semibold">
-                        {plan.name}
-                        {plan.current && (
-                          <span className="type-viewfinder-label ml-2 rounded-sm bg-[var(--color-surface-container-high)] px-1.5 py-0.5 align-middle text-[var(--color-on-surface-variant)]">
-                            current
-                          </span>
-                        )}
-                      </h3>
-                      <p className="type-body-md">
-                        {plan.price}
-                        <span className="type-viewfinder-label ml-1 text-[var(--color-on-surface-variant)]">
-                          {plan.period}
-                        </span>
-                      </p>
-                    </div>
-
-                    <ul className="mt-3 space-y-1.5">
-                      {plan.features.map((f) => (
-                        <li
-                          key={f}
-                          className="type-viewfinder-label flex items-start gap-2 text-[var(--color-on-surface-variant)]"
-                        >
-                          <span className="mt-px shrink-0">
-                            <CheckIcon />
-                          </span>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {!plan.current && (
-                      <button
-                        type="button"
-                        onClick={() => setPending("billing")}
-                        className="type-button-text mt-4 w-full rounded-md bg-[var(--color-primary)] px-4 py-3 text-[var(--color-on-primary)]"
-                      >
-                        Upgrade to {plan.name}
-                      </button>
-                    )}
-                  </div>
-                ))}
-
-                <p className="type-viewfinder-label pt-1 leading-4 text-[var(--color-on-surface-variant)] opacity-60">
-                  Prices are a sketch — nothing is charged, and no payment
-                  provider is connected.
-                </p>
-              </div>
-            ) : view === "delete" ? (
+            {view === "delete" ? (
               <div className="space-y-4 px-5 py-5">
                 <p className="type-body-md">
                   This deletes your account, every photo in your library, and
@@ -292,14 +211,10 @@ export function UserButton({
                   </div>
                 </div>
 
-                <dl className="grid grid-cols-3 gap-3 px-5 pb-4">
+                <dl className="grid grid-cols-2 gap-3 px-5 pb-4">
                   {[
                     ["photos", photoCount],
                     ["folders", folderCount],
-                    [
-                      "left",
-                      profile ? (profile.is_pro ? "∞" : profile.photo_quota) : "…",
-                    ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -313,26 +228,33 @@ export function UserButton({
                   ))}
                 </dl>
 
-                {!profile?.is_pro && (
-                  <button
-                    type="button"
-                    onClick={() => setView("pricing")}
-                    className="mx-5 mb-2 flex w-[calc(100%-40px)] items-center gap-3 rounded-md border border-[var(--color-outline-variant)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                  >
-                    <span className="text-[var(--color-film-amber)]">
-                      <SparkIcon />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="type-body-md block">Upgrade to Pro</span>
-                      <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
-                        on Free — {profile?.photo_quota ?? "…"} photos left
-                      </span>
-                    </span>
-                    <ChevronRightIcon />
-                  </button>
-                )}
-
                 <ul className="px-3 py-1">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onTogglePreset(!(profile?.preset_enabled ?? true))
+                      }
+                      aria-pressed={profile?.preset_enabled ?? true}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                    >
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        <SparkIcon />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="type-body-md block">
+                          Disposable camera preset
+                        </span>
+                        <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
+                          {(profile?.preset_enabled ?? true)
+                            ? "on — photos are graded"
+                            : "off — photos save raw"}
+                        </span>
+                      </span>
+                      <Switch on={profile?.preset_enabled ?? true} />
+                    </button>
+                  </li>
+
                   <li>
                     <Link
                       href="/update-password"
@@ -348,21 +270,20 @@ export function UserButton({
                     </Link>
                   </li>
 
-                  {rows.map((row) => (
-                    <li key={row.id}>
-                      <button
-                        type="button"
-                        onClick={() => setPending(row.id)}
-                        className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
-                      >
-                        <span className="text-[var(--color-on-surface-variant)]">
-                          {row.icon}
-                        </span>
-                        <span className="type-body-md flex-1">{row.label}</span>
-                        <ChevronRightIcon />
-                      </button>
-                    </li>
-                  ))}
+                  <li>
+                    <Link
+                      href="/privacy"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-[var(--color-surface-container)]"
+                    >
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        <ShieldIcon />
+                      </span>
+                      <span className="type-body-md flex-1">
+                        Privacy &amp; data
+                      </span>
+                      <ChevronRightIcon />
+                    </Link>
+                  </li>
 
                   <li>
                     <button
@@ -400,14 +321,6 @@ export function UserButton({
                   </li>
                 </ul>
               </>
-            )}
-
-            {pending && (
-              <p className="mx-5 mt-3 rounded-md bg-[var(--color-surface-container)] px-4 py-3 text-[13px] leading-5 text-[var(--color-on-surface-variant)]">
-                {pending === "billing"
-                  ? "No payment provider is connected, so nothing can be charged. Plans are a sketch, not an offer."
-                  : "Your email and password are stored by Supabase Auth. Developed photos are stored in your private library — only you can access them."}
-              </p>
             )}
           </div>
         </div>

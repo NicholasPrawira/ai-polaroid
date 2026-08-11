@@ -36,11 +36,12 @@ export const FOLDER_COLORS = [
   "#8a6bb0", // violet
 ] as const;
 
-export type Screen = "camera" | "processing" | "result" | "gallery";
+export type Screen = "camera" | "result" | "gallery";
 
 export type Profile = {
-  is_pro: boolean;
-  photo_quota: number;
+  /** Off means a capture is saved raw, straight off the camera — no LUT
+   *  grade, vignette, or grain applied. */
+  preset_enabled: boolean;
 };
 
 /** Groups a date the way a photo roll reads: today, yesterday, then the date. */

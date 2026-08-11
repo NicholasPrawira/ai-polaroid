@@ -228,29 +228,30 @@ export async function loadLibrary(
   if (foldersRes.error) throw foldersRes.error;
 
   const paths = photosRes.data.map((p) => p.storage_path);
-  const signedByPath = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: signed, error: signError } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrls(paths, SIGNED_URL_TTL_S);
-    if (signError) throw signError;
-    for (const s of signed) {
-      if (s.signedUrl && s.path) signedByPath.set(s.path, s.signedUrl);
-    }
-  }
-
   const voicePaths = photosRes.data
     .map((p) => p.voice_path)
     .filter((p): p is string => p !== null);
+
+  // Independent of each other — sign both batches concurrently instead of
+  // waiting on photos before even starting the voice-note batch.
+  const [photoSignRes, voiceSignRes] = await Promise.all([
+    paths.length > 0
+      ? supabase.storage.from(BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_S)
+      : Promise.resolve({ data: [], error: null }),
+    voicePaths.length > 0
+      ? supabase.storage.from(VOICE_BUCKET).createSignedUrls(voicePaths, SIGNED_URL_TTL_S)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (photoSignRes.error) throw photoSignRes.error;
+  if (voiceSignRes.error) throw voiceSignRes.error;
+
+  const signedByPath = new Map<string, string>();
+  for (const s of photoSignRes.data ?? []) {
+    if (s.signedUrl && s.path) signedByPath.set(s.path, s.signedUrl);
+  }
   const signedVoiceByPath = new Map<string, string>();
-  if (voicePaths.length > 0) {
-    const { data: signed, error: signError } = await supabase.storage
-      .from(VOICE_BUCKET)
-      .createSignedUrls(voicePaths, SIGNED_URL_TTL_S);
-    if (signError) throw signError;
-    for (const s of signed) {
-      if (s.signedUrl && s.path) signedVoiceByPath.set(s.path, s.signedUrl);
-    }
+  for (const s of voiceSignRes.data ?? []) {
+    if (s.signedUrl && s.path) signedVoiceByPath.set(s.path, s.signedUrl);
   }
 
   const shots: Shot[] = photosRes.data

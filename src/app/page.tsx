@@ -36,6 +36,24 @@ const SCENES = [
   { src: "/scene-everyday.jpg", label: "Everyday Moments" },
 ];
 
+const STEPS = [
+  {
+    n: "01",
+    title: "Capture",
+    body: "Point, shoot. Your photo develops into the disposable-camera look, right on your device.",
+  },
+  {
+    n: "02",
+    title: "Flip it over",
+    body: "Swipe the print and it turns over, ready for a caption about what the moment was.",
+  },
+  {
+    n: "03",
+    title: "Add a voice",
+    body: "Record a short voice note alongside it, so the memory isn't just the words you typed.",
+  },
+];
+
 const FAQ = [
   {
     q: "Is my photo safe?",
@@ -48,10 +66,6 @@ const FAQ = [
   {
     q: "Do I need an account?",
     a: "Yes. Signing in is what keeps your photos and folders private to you instead of anyone else who opens the app.",
-  },
-  {
-    q: "How many photos can I develop?",
-    a: "Every account starts with a set number of free photos. Need more? Reach out and we'll top you up.",
   },
 ];
 
@@ -102,6 +116,19 @@ export default function Landing() {
               label="Photos developed with Capture Memory"
             />
           </div>
+        </section>
+
+        <section className="landing-how">
+          <h2 className="landing-how-heading">How it works</h2>
+          <ol className="landing-how-list">
+            {STEPS.map((step) => (
+              <li key={step.n} className="landing-how-item">
+                <span className="landing-how-n">{step.n}</span>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </li>
+            ))}
+          </ol>
         </section>
 
         <section className="landing-faq">

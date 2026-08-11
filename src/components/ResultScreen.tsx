@@ -68,6 +68,7 @@ export function ResultScreen({
   photoCount,
   folderCount,
   profile,
+  onTogglePreset,
   initialFlipped = false,
 }: {
   shot: Shot;
@@ -86,6 +87,7 @@ export function ResultScreen({
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
+  onTogglePreset: (enabled: boolean) => void;
   /** Set when opened via the grid's swipe-to-flip gesture — the tile there
    *  already flipped once, so this opens straight to the memory side and
    *  grows in rather than just appearing, continuing that motion instead of
@@ -223,6 +225,7 @@ export function ResultScreen({
           photoCount={photoCount}
           folderCount={folderCount}
           profile={profile}
+          onTogglePreset={onTogglePreset}
         />
       </header>
 

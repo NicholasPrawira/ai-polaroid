@@ -2,12 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraScreen } from "@/components/CameraScreen";
-import { ProcessingScreen } from "@/components/ProcessingScreen";
 import { ResultScreen } from "@/components/ResultScreen";
 import { GalleryScreen } from "@/components/GalleryScreen";
 import { TabBar } from "@/components/Chrome";
 import { Folder, Profile, Screen, Shot } from "@/lib/types";
-import { useDevelop } from "@/lib/useDevelop";
 import { loadCubeLut, type Lut3D } from "@/lib/lut";
 import { applyDisposableLook } from "@/lib/filmEffect";
 import { createClient } from "@/lib/supabase/client";
@@ -37,8 +35,9 @@ export default function Home() {
   // motion instead of showing the front first.
   const [openFlipped, setOpenFlipped] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [source, setSource] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   // Lazily fetched and cached — a ~1MB file not worth loading before it's
   // actually needed.
   const presetLutRef = useRef<Promise<Lut3D> | null>(null);
@@ -49,28 +48,42 @@ export default function Home() {
     return presetLutRef.current;
   }, []);
 
-  // /camera is auth-gated by proxy.ts, so a session is guaranteed by the
-  // time this mounts — this just loads which user, and their library.
+  // /camera is auth-gated by proxy.ts, which already verified the session
+  // server-side (getClaims(), a real JWT check) before this ever rendered —
+  // so re-verifying with the network round-trip of auth.getUser() here is
+  // redundant. getSession() reads the already-verified session straight
+  // out of local storage, which is what makes this feel instant instead of
+  // waiting on an extra request before the library query can even start.
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      const id = data.user?.id;
+
+    async function load() {
+      const { data } = await supabase.auth.getSession();
+      const id = data.session?.user.id;
       if (cancelled || !id) return;
       setUserId(id);
-      loadLibrary(supabase, id).then((library) => {
-        if (cancelled) return;
-        setShots(library.shots);
-        setFolders(library.folders);
-      });
-      supabase
-        .from("profiles")
-        .select("is_pro, photo_quota")
-        .eq("user_id", id)
-        .single()
-        .then(({ data: p }) => {
-          if (!cancelled) setProfile(p);
-        });
-    });
+
+      // Independent of each other — run concurrently instead of making the
+      // profile wait behind the library (or vice versa).
+      const [libraryResult, profileResult] = await Promise.allSettled([
+        loadLibrary(supabase, id),
+        supabase.from("profiles").select("preset_enabled").eq("user_id", id).single(),
+      ]);
+      if (cancelled) return;
+
+      if (libraryResult.status === "fulfilled") {
+        setShots(libraryResult.value.shots);
+        setFolders(libraryResult.value.folders);
+      }
+      // On rejection, shots/folders stay at their initial empty state — the
+      // gallery just reads as "no photos yet" rather than erroring the page.
+
+      if (profileResult.status === "fulfilled") {
+        setProfile(profileResult.value.data);
+      }
+    }
+
+    load().catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -104,73 +117,58 @@ export default function Home() {
         setViewingFromGallery(false);
         setOpenFlipped(false);
         setScreen("result");
-        // consume_photo_quota() already decremented this server-side
-        // (runDevelop below calls it before grading, and only proceeds if
-        // it returns true) — mirror it locally so the count on screen
-        // doesn't wait for a refetch.
-        setProfile((prev) =>
-          prev && !prev.is_pro
-            ? { ...prev, photo_quota: Math.max(0, prev.photo_quota - 1) }
-            : prev,
-        );
       });
     },
     [supabase, userId],
   );
 
-  const handleComplete = useCallback(
-    (image: string) => finalizeShot(image),
-    [finalizeShot],
-  );
-
-  const PRESET_DEVELOP_MS = 5_000;
-
-  // Every photo goes through the same local preset — a LUT grade plus
-  // vignette/grain/bloom (lib/filmEffect.ts) — instead of a per-photo AI
-  // call. Quota still gates it (same RPC /api/develop used to call
-  // server-side), called directly since there's no server round-trip left
-  // to do it from.
+  // No quota, no AI call — grading (or not) is the only branch left, driven
+  // by the preset toggle.
   const runDevelop = useCallback(
     async (imageDataUrl: string) => {
-      const { data: allowed, error } = await supabase.rpc("consume_photo_quota");
-      if (error) throw error;
-      if (!allowed) throw new Error("You're out of photos. Ask the admin for more.");
+      if (!(profile?.preset_enabled ?? true)) return imageDataUrl;
 
-      const [graded] = await Promise.all([
-        getPresetLut()
-          .then((lut) => applyDisposableLook(imageDataUrl, lut))
-          .catch(() => imageDataUrl),
-        new Promise((resolve) => window.setTimeout(resolve, PRESET_DEVELOP_MS)),
-      ]);
-      return graded;
+      return getPresetLut()
+        .then((lut) => applyDisposableLook(imageDataUrl, lut))
+        .catch(() => imageDataUrl);
     },
-    [supabase, getPresetLut],
+    [getPresetLut, profile?.preset_enabled],
   );
 
-  const { state, progress, start, cancel } = useDevelop(
-    runDevelop,
-    handleComplete,
-    PRESET_DEVELOP_MS,
+  const handleTogglePreset = useCallback(
+    (enabled: boolean) => {
+      setProfile((prev) => (prev ? { ...prev, preset_enabled: enabled } : prev));
+      supabase.rpc("set_preset_enabled", { enabled }).then(({ error }) => {
+        if (error) {
+          // Revert — the toggle in the UI would otherwise lie about what's
+          // actually saved server-side.
+          setProfile((prev) =>
+            prev ? { ...prev, preset_enabled: !enabled } : prev,
+          );
+        }
+      });
+    },
+    [supabase],
   );
 
+  // No processing screen — grading is fast enough (local canvas work) that
+  // waiting on a dedicated "developing" step would be waiting for nothing.
+  // `capturing` just guards against a double-tap while the promise settles.
   const handleCapture = useCallback(
     (dataUrl: string) => {
-      setSource(dataUrl);
-      setScreen("processing");
-      start(dataUrl);
+      setCapturing(true);
+      setCaptureError(null);
+      runDevelop(dataUrl)
+        .then((graded) => finalizeShot(graded))
+        .catch((err: unknown) => {
+          setCaptureError(
+            err instanceof Error ? err.message : "Could not develop this photo.",
+          );
+        })
+        .finally(() => setCapturing(false));
     },
-    [start],
+    [runDevelop, finalizeShot],
   );
-
-  const handleCancel = useCallback(() => {
-    cancel();
-    setSource(null);
-    setScreen("camera");
-  }, [cancel]);
-
-  const handleRetry = useCallback(() => {
-    if (source) start(source);
-  }, [source, start]);
 
   const handleCreateFolder = useCallback(
     async (name: string, color: string | null = null) => {
@@ -242,7 +240,6 @@ export default function Home() {
   );
 
   const handleNewPhoto = useCallback(() => {
-    setSource(null);
     setScreen("camera");
   }, []);
 
@@ -262,20 +259,6 @@ export default function Home() {
     [supabase, viewingFromGallery],
   );
 
-  if (screen === "processing" && source) {
-    return (
-      <main className="paper grain flex h-dvh flex-col">
-        <ProcessingScreen
-          source={source}
-          progress={progress}
-          error={state.status === "error" ? state.message : null}
-          onCancel={handleCancel}
-          onRetry={handleRetry}
-        />
-      </main>
-    );
-  }
-
   return (
     <main className="paper grain flex h-dvh flex-col">
       <div className="grain-layer" />
@@ -287,6 +270,9 @@ export default function Home() {
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
+            onTogglePreset={handleTogglePreset}
+            capturing={capturing}
+            captureError={captureError}
           />
         )}
 
@@ -305,6 +291,7 @@ export default function Home() {
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
+            onTogglePreset={handleTogglePreset}
             initialFlipped={openFlipped}
           />
         )}
@@ -322,6 +309,7 @@ export default function Home() {
             photoCount={shots.length}
             folderCount={folders.length}
             profile={profile}
+            onTogglePreset={handleTogglePreset}
             onUpdateFolder={handleUpdateFolder}
             onCreateFolder={handleCreateFolder}
             onUpload={handleCapture}

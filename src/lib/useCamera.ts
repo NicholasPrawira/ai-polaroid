@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type Facing = "user" | "environment";
+export type Zoom = 1 | 2 | 3;
 
 const CAPTURE_SIZE = 1024;
 
@@ -10,6 +11,7 @@ export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<Facing>("environment");
+  const [zoom, setZoom] = useState<Zoom>(1);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -74,12 +76,15 @@ export function useCamera() {
     [],
   );
 
-  /** Grabs a centre-cropped square frame as a JPEG data URL. */
+  /** Grabs a centre-cropped square frame as a JPEG data URL. Digital zoom
+   *  just tightens the crop before scaling up — same region the live
+   *  preview shows via its own CSS scale, so the print matches what was
+   *  framed on screen. */
   const capture = useCallback((): string | null => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return null;
 
-    const side = Math.min(video.videoWidth, video.videoHeight);
+    const side = Math.min(video.videoWidth, video.videoHeight) / zoom;
     const sx = (video.videoWidth - side) / 2;
     const sy = (video.videoHeight - side) / 2;
 
@@ -98,7 +103,7 @@ export function useCamera() {
     ctx.drawImage(video, sx, sy, side, side, 0, 0, CAPTURE_SIZE, CAPTURE_SIZE);
 
     return canvas.toDataURL("image/jpeg", 0.92);
-  }, [facing]);
+  }, [facing, zoom]);
 
-  return { videoRef, facing, flip, capture, error, ready };
+  return { videoRef, facing, flip, zoom, setZoom, capture, error, ready };
 }

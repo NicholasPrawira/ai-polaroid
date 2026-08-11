@@ -18,20 +18,33 @@ import { Profile, Shot } from "@/lib/types";
 /** Self-timer positions, cycled by tapping the chip. */
 const TIMER_STEPS = [0, 3, 10] as const;
 
+/** Digital zoom levels, tapped directly rather than cycled — matches how
+ *  phone camera apps present them. */
+const ZOOM_LEVELS = [1, 2, 3] as const;
+
 export function CameraScreen({
   onCapture,
   lastShot,
   photoCount,
   folderCount,
   profile,
+  onTogglePreset,
+  capturing = false,
+  captureError = null,
 }: {
   onCapture: (dataUrl: string) => void;
   lastShot: Shot | null;
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
+  onTogglePreset: (enabled: boolean) => void;
+  /** True for the brief moment between a shutter tap and the print landing
+   *  on the result screen — grading is local and fast, so this is just
+   *  enough to block a double-tap, not a "developing" wait. */
+  capturing?: boolean;
+  captureError?: string | null;
 }) {
-  const { videoRef, facing, flip, capture, error, ready } = useCamera();
+  const { videoRef, facing, flip, zoom, setZoom, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
   const [flashing, setFlashing] = useState(false);
   const [timerIndex, setTimerIndex] = useState(0);
@@ -93,7 +106,7 @@ export function CameraScreen({
     }, 1000);
   }
 
-  const busy = !ready || !!error;
+  const busy = !ready || !!error || capturing;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -141,6 +154,7 @@ export function CameraScreen({
             photoCount={photoCount}
             folderCount={folderCount}
             profile={profile}
+            onTogglePreset={onTogglePreset}
           />
         </div>
       </header>
@@ -163,9 +177,9 @@ export function CameraScreen({
                 autoPlay
                 className="h-full w-full object-cover"
                 style={{
-                  transform: facing === "user" ? "scaleX(-1)" : undefined,
+                  transform: `scale(${facing === "user" ? -zoom : zoom}, ${zoom})`,
                   opacity: ready ? 1 : 0,
-                  transition: "opacity 300ms ease",
+                  transition: "transform 200ms ease, opacity 300ms ease",
                 }}
               />
               <ViewfinderHud />
@@ -185,6 +199,25 @@ export function CameraScreen({
               {flashing && (
                 <div className="animate-shutter absolute inset-0 z-30 bg-white" />
               )}
+
+              <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/40 p-1 backdrop-blur-sm">
+                {ZOOM_LEVELS.map((z) => (
+                  <button
+                    key={z}
+                    type="button"
+                    onClick={() => setZoom(z)}
+                    aria-label={`${z}x zoom`}
+                    aria-pressed={zoom === z}
+                    className={`type-viewfinder-label grid h-7 w-7 place-items-center rounded-full transition-colors ${
+                      zoom === z
+                        ? "bg-white text-black"
+                        : "text-white/80 hover:text-white"
+                    }`}
+                  >
+                    {z}x
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -222,14 +255,18 @@ export function CameraScreen({
         </div>
       </div>
 
-      <p className="type-viewfinder-label -mt-2 pb-2 text-center text-[var(--color-on-surface-variant)] opacity-60">
-        {countdown !== null
-          ? "tap shutter to cancel"
-          : profile
-            ? profile.is_pro
-              ? "Unlimited photos"
-              : `${profile.photo_quota} photo${profile.photo_quota === 1 ? "" : "s"} left`
-            : " "}
+      <p
+        className={`type-viewfinder-label -mt-2 pb-2 text-center opacity-60 ${
+          captureError
+            ? "text-[var(--color-error)]"
+            : "text-[var(--color-on-surface-variant)]"
+        }`}
+      >
+        {captureError
+          ? captureError
+          : countdown !== null
+            ? "tap shutter to cancel"
+            : " "}
       </p>
     </div>
   );

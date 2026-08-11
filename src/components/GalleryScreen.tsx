@@ -155,6 +155,7 @@ export function GalleryScreen({
   photoCount,
   folderCount,
   profile,
+  onTogglePreset,
   onUpdateFolder,
   onCreateFolder,
   onUpload,
@@ -165,6 +166,7 @@ export function GalleryScreen({
   photoCount: number;
   folderCount: number;
   profile: Profile | null;
+  onTogglePreset: (enabled: boolean) => void;
   onUpdateFolder: (
     folderId: string,
     patch: { name: string; color: string | null },
@@ -282,6 +284,7 @@ export function GalleryScreen({
           photoCount={photoCount}
           folderCount={folderCount}
           profile={profile}
+          onTogglePreset={onTogglePreset}
         />
       </header>
 

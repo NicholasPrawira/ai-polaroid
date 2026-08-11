@@ -86,24 +86,21 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          is_pro: boolean
-          photo_quota: number
+          preset_enabled: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           email: string
-          is_pro?: boolean
-          photo_quota?: number
+          preset_enabled?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           email?: string
-          is_pro?: boolean
-          photo_quota?: number
+          preset_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -114,8 +111,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      consume_photo_quota: { Args: never; Returns: boolean }
       delete_own_account: { Args: never; Returns: undefined }
+      set_preset_enabled: { Args: { enabled: boolean }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
