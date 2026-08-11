@@ -47,6 +47,10 @@ export function CameraScreen({
   const { videoRef, facing, flip, zoom, setZoom, capture, error, ready } = useCamera();
   const [flash, setFlash] = useState(false);
   const [flashing, setFlashing] = useState(false);
+  // The front camera has no hardware flash, so "on" instead floods the
+  // whole screen white for a moment before the shot — the same screen-as-
+  // lightsource trick every phone camera app uses for a bright selfie.
+  const [screenFlashing, setScreenFlashing] = useState(false);
   const [timerIndex, setTimerIndex] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
 
@@ -68,13 +72,28 @@ export function CameraScreen({
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  const shoot = useCallback(() => {
+  const shoot = useCallback(async () => {
+    const useScreenFlash = flash && facing === "user";
+    if (useScreenFlash) {
+      setScreenFlashing(true);
+      // Long enough for the white screen to actually catch the face and
+      // for the camera's exposure to settle before the frame is grabbed —
+      // firing the capture immediately would beat the light there.
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    }
+
     const dataUrl = capture();
+
+    if (useScreenFlash) setScreenFlashing(false);
     if (!dataUrl) return;
-    setFlashing(true);
-    timeoutRef.current = window.setTimeout(() => setFlashing(false), 420);
+    // Rear camera's decorative in-frame flash — only when flash is actually
+    // on, same as the front camera's screen flash above.
+    if (flash && facing !== "user") {
+      setFlashing(true);
+      timeoutRef.current = window.setTimeout(() => setFlashing(false), 420);
+    }
     onCapture(dataUrl);
-  }, [capture, onCapture]);
+  }, [capture, onCapture, flash, facing]);
 
   function handleShutter() {
     // Tapping mid-countdown aborts it, the way a real camera's cancel works.
@@ -106,10 +125,19 @@ export function CameraScreen({
     }, 1000);
   }
 
-  const busy = !ready || !!error || capturing;
+  const busy = !ready || !!error || capturing || screenFlashing;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Screen-as-flash for the front camera — the whole viewport, not just
+          the preview box, so it actually throws light onto the user's face
+          instead of just looking like a UI flourish. Stays mounted so the
+          fade in and out both animate instead of snapping on unmount. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-50 bg-white transition-opacity duration-150 ease-out"
+        style={{ opacity: screenFlashing ? 1 : 0 }}
+      />
       {/* True centering (absolute, on the header's own width) only kicks in
           at `sm:` and up. On a phone-width header the icon cluster alone is
           ~170px — centering a logo big enough to read there means it
