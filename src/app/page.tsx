@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AsciiBackground } from "@/components/AsciiBackground";
 import { CoverflowCarousel } from "@/components/CoverflowCarousel";
+import { HeroWordList } from "@/components/HeroWordList";
 import { LandingCta } from "@/components/LandingCta";
 import type { Metadata } from "next";
 
@@ -155,11 +156,7 @@ export default function Landing() {
               concert, first date, and everyday moments.
             </span>
           </h1>
-          <ul aria-hidden="true">
-            {WORDS.map((word) => (
-              <li key={word}>{word}</li>
-            ))}
-          </ul>
+          <HeroWordList words={WORDS} />
         </div>
       </header>
 

@@ -367,7 +367,9 @@ body {
 }
 
 /* Only hide the text behind a gradient where clipping is actually
-   supported — otherwise the words would vanish entirely. */
+   supported — otherwise the words would vanish entirely. `background-
+   attachment: fixed` is the mechanism: the gradient stays put on screen
+   while the clipped text scrolls through it. */
 @supports (background-clip: text) or (-webkit-background-clip: text) {
   .landing-hero li {
     background: linear-gradient(
@@ -382,6 +384,23 @@ body {
     -webkit-background-clip: text;
     color: transparent;
   }
+}
+
+/* iOS Safari (and most mobile WebKit) doesn't honour `background-
+   attachment: fixed` on a background that's also clipped to text — it
+   tracks the element instead of the viewport, so the gradient band never
+   actually passes over the words and the highlight sticks on whichever
+   word first landed on it. `useHeroHighlight` (see landing-hero-inner's
+   client wrapper) detects that case and marks the active word with
+   `data-active` via a scroll listener instead; this overrides the
+   gradient with a flat color so it still works there. `animation-timeline:
+   view()` was tried first, but `.landing-hero` is itself `position:
+   sticky`, and once a sticky element locks in place its children stop
+   moving through the view-timeline too, so the animation never progressed
+   in *any* browser, not just Safari. */
+.landing-hero li[data-active="true"] {
+  background: none;
+  color: var(--color-film-amber-bright);
 }
 
 /* --- The bright panel that slides up over the hero --- */
@@ -501,6 +520,11 @@ body {
     grid-template-columns: 1fr;
     max-width: 420px;
     gap: 1.5rem;
+    text-align: center;
+  }
+
+  .landing-how-item {
+    align-items: center;
   }
 }
 
