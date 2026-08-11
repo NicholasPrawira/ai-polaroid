@@ -106,11 +106,19 @@ export function PhotoTile({
       >
         <div style={{ backfaceVisibility: "hidden" }}>
           <PhotoCard radius="md">
+            {/* The small rendition, not the full photo: the grid draws
+                this at ~150px, and loading the ~395KB original for every
+                tile was the app's single biggest bandwidth cost. Falls
+                back to the full image for photos saved before thumbnails
+                existed. `loading="lazy"` keeps offscreen tiles from being
+                fetched at all, which matters because the gallery renders
+                the whole library at once. */}
             <Image
-              src={shot.imageUrl}
+              src={shot.thumbUrl}
               alt="Photo"
               fill
               unoptimized
+              loading="lazy"
               draggable={false}
               sizes="150px"
               className="object-cover"

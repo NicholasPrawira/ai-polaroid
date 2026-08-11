@@ -177,11 +177,14 @@ export function AnimatedFolderCard({
                     pointerEvents: expanded ? "auto" : "none",
                   }}
                 >
+                  {/* 40px preview — the full photo would be ~15x the
+                      bytes for something this size. */}
                   <Image
-                    src={shot.imageUrl}
+                    src={shot.thumbUrl}
                     alt=""
                     fill
                     unoptimized
+                    loading="lazy"
                     sizes="40px"
                     className="object-cover"
                   />

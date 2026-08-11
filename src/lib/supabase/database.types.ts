@@ -49,6 +49,7 @@ export type Database = {
           folder_id: string | null
           id: string
           storage_path: string
+          thumb_path: string | null
           user_id: string
           voice_path: string | null
         }
@@ -59,6 +60,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           storage_path: string
+          thumb_path?: string | null
           user_id: string
           voice_path?: string | null
         }
@@ -69,6 +71,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           storage_path?: string
+          thumb_path?: string | null
           user_id?: string
           voice_path?: string | null
         }

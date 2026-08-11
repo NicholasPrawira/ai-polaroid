@@ -10,9 +10,11 @@ import { loadCubeLut, type Lut3D } from "@/lib/lut";
 import { applyDisposableLook } from "@/lib/filmEffect";
 import { createClient } from "@/lib/supabase/client";
 import {
+  MONTHLY_PHOTO_LIMIT,
   createFolder,
   deletePhoto,
   deleteVoiceNote,
+  isMonthlyLimitError,
   loadLibrary,
   movePhotoToFolder,
   persistPhoto,
@@ -103,12 +105,25 @@ export default function Home() {
         // Never actually uploaded, so there's no object to point at — a
         // delete of this shot just clears local state (see handleDeletePhoto).
         storagePath: "",
+        thumbPath: null,
+        // Nothing was stored, so the grid reuses the local bytes it already has.
+        thumbUrl: image,
         voicePath: null,
         voiceUrl: null,
       };
 
       const promoted = userId
-        ? persistPhoto(supabase, userId, image, null).catch(() => fallback)
+        ? persistPhoto(supabase, userId, image, null).catch((err: unknown) => {
+            // Hitting the monthly cap is a real answer, not a glitch — say
+            // so, rather than letting the shot look saved and then vanish
+            // on the next refresh.
+            if (isMonthlyLimitError(err)) {
+              setCaptureError(
+                `You've reached ${MONTHLY_PHOTO_LIMIT} photos this month. This one wasn't saved.`,
+              );
+            }
+            return fallback;
+          })
         : Promise.resolve(fallback);
 
       promoted.then((shot) => {

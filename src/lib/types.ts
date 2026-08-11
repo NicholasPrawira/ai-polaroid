@@ -10,6 +10,12 @@ export type Shot = {
   /** Path in the private `photos` storage bucket — needed to remove the
    *  object itself when the photo is deleted, not just its database row. */
   storagePath: string;
+  /** Path of the small grid rendition, or `null` for photos saved before
+   *  thumbnails existed (the grid falls back to the full image for those). */
+  thumbPath: string | null;
+  /** Signed URL for the grid rendition. Falls back to `imageUrl` when the
+   *  photo has no thumbnail, so callers can use it unconditionally. */
+  thumbUrl: string;
   /** Path in the private `voice-notes` storage bucket, or `null` if this
    *  shot has no voice memory attached. */
   voicePath: string | null;

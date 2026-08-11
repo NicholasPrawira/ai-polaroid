@@ -3,14 +3,47 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { Folder, Shot } from "@/lib/types";
+import { makeThumbnail } from "@/lib/thumbnail";
 
 type Client = SupabaseClient<Database>;
 
 const BUCKET = "photos";
 const VOICE_BUCKET = "voice-notes";
-/** Signed URLs are re-issued on every load rather than cached, so this only
- *  needs to outlive one browsing session. */
-const SIGNED_URL_TTL_S = 60 * 60;
+
+/** Matches the `photos_monthly_limit` trigger in the database. Kept here
+ *  only so the UI can name the number in its message — the trigger is what
+ *  actually enforces it, since the browser talks to PostgREST directly and
+ *  any client-side check could simply be skipped. */
+export const MONTHLY_PHOTO_LIMIT = 200;
+
+/** True when an error came back from the monthly-limit trigger, so callers
+ *  can show the real reason instead of a generic failure. */
+export function isMonthlyLimitError(error: unknown): boolean {
+  const message =
+    typeof error === "object" && error !== null && "message" in error
+      ? String((error as { message: unknown }).message)
+      : "";
+  return message.includes("Monthly limit reached");
+}
+
+/**
+ * Signed URLs are re-issued on every load, and each one carries a fresh
+ * token — which means a differing URL, which means the browser cache never
+ * matches and the whole library is re-downloaded on every visit. With no
+ * pagination in the gallery that is the dominant bandwidth cost of the app.
+ *
+ * A week-long token keeps the URL stable long enough for the HTTP cache to
+ * actually do its job across sessions. The objects stay private: the token
+ * still expires, and it only ever grants access to that one object.
+ */
+const SIGNED_URL_TTL_S = 60 * 60 * 24 * 7;
+
+/**
+ * `Cache-Control: max-age` Supabase serves the stored object with. Photos
+ * are immutable once written — a re-develop writes a new id — so the only
+ * thing that ends a cache entry is the signed token expiring.
+ */
+const STORAGE_CACHE_S = "604800"; // 7 days, matching the token lifetime
 
 function extensionFor(mime: string): string {
   if (mime === "image/png") return "png";
@@ -43,11 +76,25 @@ export async function persistPhoto(
   const blob = await dataUrlToBlob(imageDataUrl);
   const id = crypto.randomUUID();
   const path = `${userId}/${id}.${extensionFor(blob.type || "image/jpeg")}`;
+  const thumbPath = `${userId}/${id}_thumb.jpg`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, blob, { contentType: blob.type || "image/jpeg" });
+  // Build the thumbnail before uploading anything, but never let it block
+  // the save: a photo without a grid rendition still works (the gallery
+  // falls back to the full image), whereas losing the photo does not.
+  const thumbBlob = await makeThumbnail(imageDataUrl).catch(() => null);
+
+  const [{ error: uploadError }, thumbUpload] = await Promise.all([
+    supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, { contentType: blob.type || "image/jpeg", cacheControl: STORAGE_CACHE_S }),
+    thumbBlob
+      ? supabase.storage
+          .from(BUCKET)
+          .upload(thumbPath, thumbBlob, { contentType: "image/jpeg", cacheControl: STORAGE_CACHE_S })
+      : Promise.resolve({ error: null }),
+  ]);
   if (uploadError) throw uploadError;
+  const thumbStored = !!thumbBlob && !thumbUpload.error;
 
   const { data: row, error: insertError } = await supabase
     .from("photos")
@@ -56,12 +103,13 @@ export async function persistPhoto(
       user_id: userId,
       folder_id: folderId,
       storage_path: path,
+      thumb_path: thumbStored ? thumbPath : null,
     })
     .select()
     .single();
   if (insertError) {
     // Don't leave an orphaned object if the row failed to write.
-    await supabase.storage.from(BUCKET).remove([path]);
+    await supabase.storage.from(BUCKET).remove(thumbStored ? [path, thumbPath] : [path]);
     throw insertError;
   }
 
@@ -72,6 +120,10 @@ export async function persistPhoto(
     folderId: row.folder_id,
     caption: row.caption,
     storagePath: row.storage_path,
+    thumbPath: row.thumb_path,
+    // The local data URL is already decoded and costs nothing to reuse,
+    // so the grid shows this capture without a fetch either way.
+    thumbUrl: imageDataUrl,
     voicePath: null, // a fresh capture never has a voice note yet
     voiceUrl: null,
   };
@@ -152,7 +204,9 @@ export async function deletePhoto(
   const { error } = await supabase.from("photos").delete().eq("id", photo.id);
   if (error) throw error;
 
-  await supabase.storage.from(BUCKET).remove([photo.storagePath]);
+  await supabase.storage
+    .from(BUCKET)
+    .remove(photo.thumbPath ? [photo.storagePath, photo.thumbPath] : [photo.storagePath]);
   if (photo.voicePath) {
     await supabase.storage.from(VOICE_BUCKET).remove([photo.voicePath]);
   }
@@ -227,7 +281,14 @@ export async function loadLibrary(
   if (photosRes.error) throw photosRes.error;
   if (foldersRes.error) throw foldersRes.error;
 
-  const paths = photosRes.data.map((p) => p.storage_path);
+  // Thumbnails live in the same bucket, so they ride along in the same
+  // signing batch rather than costing a second round-trip.
+  const paths = [
+    ...photosRes.data.map((p) => p.storage_path),
+    ...photosRes.data
+      .map((p) => p.thumb_path)
+      .filter((p): p is string => p !== null),
+  ];
   const voicePaths = photosRes.data
     .map((p) => p.voice_path)
     .filter((p): p is string => p !== null);
@@ -256,16 +317,23 @@ export async function loadLibrary(
 
   const shots: Shot[] = photosRes.data
     .filter((p) => signedByPath.has(p.storage_path))
-    .map((p) => ({
-      id: p.id,
-      imageUrl: signedByPath.get(p.storage_path)!,
-      createdAt: new Date(p.created_at).getTime(),
-      folderId: p.folder_id,
-      caption: p.caption,
-      storagePath: p.storage_path,
-      voicePath: p.voice_path,
-      voiceUrl: p.voice_path ? (signedVoiceByPath.get(p.voice_path) ?? null) : null,
-    }));
+    .map((p) => {
+      const full = signedByPath.get(p.storage_path)!;
+      return {
+        id: p.id,
+        imageUrl: full,
+        createdAt: new Date(p.created_at).getTime(),
+        folderId: p.folder_id,
+        caption: p.caption,
+        storagePath: p.storage_path,
+        thumbPath: p.thumb_path,
+        // Photos saved before thumbnails existed fall back to the full
+        // image, so the grid works without a backfill.
+        thumbUrl: (p.thumb_path ? signedByPath.get(p.thumb_path) : null) ?? full,
+        voicePath: p.voice_path,
+        voiceUrl: p.voice_path ? (signedVoiceByPath.get(p.voice_path) ?? null) : null,
+      };
+    });
 
   const folders: Folder[] = foldersRes.data.map((f) => ({
     id: f.id,
