@@ -35,6 +35,22 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+const MicIcon = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6" />
+  </svg>
+);
+
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -45,6 +61,9 @@ export interface CoverflowSlide {
   title?: string;
   subtitle?: string;
   meta?: { label: string; value: string }[];
+  /** Shown on the flip side, like the memory note on a developed print.
+   *  Slides without one just don't flip. */
+  memory?: string;
 }
 
 export interface CoverflowCarouselProps {
@@ -121,8 +140,18 @@ export function CoverflowCarousel({
         move — until then the gesture is still eligible to be page scroll. */
     committed: boolean;
   } | null>(null);
+  /** Set the moment a drag actually commits, so a click firing right after
+   *  pointerup doesn't also flip the card the drag just landed on. */
+  const draggedRef = React.useRef(false);
+  /** Card the pointer went down on, by index. Mouse needs this: capturing
+   *  the pointer on mousedown (below) retargets the native `click` that
+   *  would normally follow, so a plain mouse tap-to-flip is handled here
+   *  instead of through the button's own onClick (which still covers
+   *  keyboard activation and touch, neither of which capture on down). */
+  const tappedIndexRef = React.useRef<number | null>(null);
 
   const [selected, setSelected] = React.useState(0);
+  const [flipped, setFlipped] = React.useState(false);
 
   /** Nearest whole card, folded back into 0..count-1. */
   const indexAt = React.useCallback(
@@ -225,6 +254,9 @@ export function CoverflowCarousel({
       rafRef.current = null;
     }
     targetRef.current = posRef.current;
+    draggedRef.current = false;
+    const cardEl = (event.target as HTMLElement).closest("[data-index]");
+    tappedIndexRef.current = cardEl ? Number(cardEl.getAttribute("data-index")) : null;
     const committed = event.pointerType === "mouse";
     dragRef.current = {
       id: event.pointerId,
@@ -244,6 +276,16 @@ export function CoverflowCarousel({
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.id !== event.pointerId) return;
+
+    // Total displacement since pointerdown, independent of the touch/mouse
+    // commit branches below — this is what decides whether the pointerup
+    // that follows should be treated as a click (flip) or a drag (not).
+    if (
+      Math.abs(event.clientX - drag.x) >= DRAG_THRESHOLD ||
+      Math.abs(event.clientY - drag.y) >= DRAG_THRESHOLD
+    ) {
+      draggedRef.current = true;
+    }
 
     if (!drag.committed) {
       const dx = event.clientX - drag.x;
@@ -280,6 +322,16 @@ export function CoverflowCarousel({
     const drag = dragRef.current;
     if (!drag || drag.id !== event.pointerId) return;
     dragRef.current = null;
+
+    // Mouse only — see the note on tappedIndexRef above for why touch and
+    // keyboard don't need this and go through the button's onClick instead.
+    if (event.pointerType === "mouse" && !draggedRef.current) {
+      const idx = tappedIndexRef.current;
+      if (idx !== null && idx === indexAt(posRef.current) && slides[idx]?.memory) {
+        setFlipped((f) => !f);
+      }
+    }
+
     if (!drag.committed) return;
     // Let a flick carry, but never more than two cards.
     const carried = Math.max(-2, Math.min(2, drag.v * 0.18));
@@ -311,6 +363,16 @@ export function CoverflowCarousel({
     },
     [],
   );
+
+  // Browsing away from a flipped card should turn it back face-up rather
+  // than leaving it flipped off-centre. Adjusted during render (React's
+  // documented pattern for this) rather than an effect, which would commit
+  // one stale frame with the old card still flipped before catching up.
+  const [flippedFor, setFlippedFor] = React.useState(selected);
+  if (flippedFor !== selected) {
+    setFlippedFor(selected);
+    setFlipped(false);
+  }
 
   const active = slides[selected];
 
@@ -354,30 +416,100 @@ export function CoverflowCarousel({
               transformStyle: "preserve-3d",
             }}
           >
-            {slides.map((slide, index) => (
-              <div
-                key={index}
-                ref={(node) => {
-                  cardRefs.current[index] = node;
-                }}
-                role="group"
-                aria-roledescription="slide"
-                aria-label={`${index + 1} of ${count}`}
-                className={cx(
-                  "absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl bg-black/5 shadow-xl will-change-transform",
-                  cardClassName,
-                )}
-                style={{ width: "var(--cf-card)" }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slide.src}
-                  alt={slide.alt}
-                  draggable={false}
-                  className="h-full w-full select-none object-cover"
-                />
-              </div>
-            ))}
+            {slides.map((slide, index) => {
+              const isCentre = index === selected;
+              const canFlip = Boolean(slide.memory);
+              return (
+                <div
+                  key={index}
+                  ref={(node) => {
+                    cardRefs.current[index] = node;
+                  }}
+                  data-index={index}
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${index + 1} of ${count}`}
+                  className="absolute left-1/2 top-0 aspect-square will-change-transform"
+                  style={{ width: "var(--cf-card)" }}
+                >
+                  {/* Separate from the outer div `paint()` tilts for the
+                      coverflow effect — this one only ever gets a flat
+                      rotateY(180) toggle, so the two 3D transforms never
+                      fight each other. Only the centred card responds;
+                      tilted neighbours are barely readable to flip anyway. */}
+                  <button
+                    type="button"
+                    tabIndex={isCentre && canFlip ? 0 : -1}
+                    aria-label={
+                      canFlip
+                        ? `${slide.alt}. ${flipped && isCentre ? "Showing memory. Tap to see photo." : "Tap to see memory."}`
+                        : slide.alt
+                    }
+                    // Not `disabled` — that would stop pointerdown bubbling
+                    // to the frame's own handlers, breaking drag-to-navigate
+                    // whenever a gesture happens to start on an off-centre
+                    // card. The click itself is still gated below.
+                    onClick={() => {
+                      if (draggedRef.current || !isCentre || !canFlip) return;
+                      setFlipped((f) => !f);
+                    }}
+                    className={cx(
+                      "relative h-full w-full appearance-none border-0 bg-transparent p-0",
+                      isCentre && canFlip ? "cursor-pointer" : "cursor-default",
+                    )}
+                    style={{
+                      transformStyle: "preserve-3d",
+                      transform: `rotateY(${isCentre && flipped ? 180 : 0}deg)`,
+                      transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    }}
+                  >
+                    {/* Front */}
+                    <div
+                      className={cx(
+                        "absolute inset-0 overflow-hidden rounded-2xl bg-black/5 shadow-xl",
+                        cardClassName,
+                      )}
+                      style={{ backfaceVisibility: "hidden" }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={slide.src}
+                        alt=""
+                        draggable={false}
+                        className="h-full w-full select-none object-cover"
+                      />
+                    </div>
+
+                    {/* Back — pre-rotated so it reads right-way-round once
+                        the card as a whole has turned all the way over. */}
+                    {canFlip && (
+                      <div
+                        className="absolute inset-0 overflow-hidden rounded-2xl bg-[#1c1c1d] shadow-xl"
+                        style={{
+                          backfaceVisibility: "hidden",
+                          transform: "rotateY(180deg)",
+                        }}
+                      >
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 p-5 text-center">
+                          <p className="text-[9px] font-semibold tracking-[0.12em] text-white/45 uppercase">
+                            Memory
+                          </p>
+                          <p className="text-[11px] leading-snug text-white/90">
+                            {slide.memory}
+                          </p>
+                          <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-white/75">
+                            <MicIcon />
+                            <span className="text-[10px] tabular-nums">
+                              0:{String(8 + (index % 4) * 3).padStart(2, "0")}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -343,6 +343,18 @@ body {
   color: var(--ink);
 }
 
+.landing-hero-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.landing-hero-logo {
+  width: 1.15em;
+  height: 1.15em;
+  object-fit: contain;
+}
+
 .landing-hero ul {
   margin: 0;
   padding: 0;
@@ -405,23 +417,37 @@ body {
   text-align: center;
 }
 
-/* Sits inside the same flex section as the pitch/CTA/sign-in, right below
-   sign-in — not its own full-height section, so it never needs a second
+/* Sits inside the same flex section as the pitch/CTA/sign-in, below "how it
+   works" — not its own full-height section, so it never needs a second
    scroll to reach. Width 100% because a flex child otherwise shrinks to its
    content; max-width caps the carousel's own w-full on wide viewports. */
 .landing-showcase {
   width: 100%;
   max-width: 640px;
-  margin-top: 0.5rem;
+  margin-top: 1.5rem;
 }
 
-/* --- How it works: three steps between the showcase and the FAQ. Numbers
-   in the HUD mono face tie it back to the camera's own readouts instead of
-   reading like a generic marketing grid. --- */
+.landing-showcase-hint {
+  margin: 0.5rem 0 0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: rgb(28 28 29 / 0.4);
+}
+
+/* --- How it works: three steps, right below sign-in and before the photo
+   showcase — the explanation comes before the proof. Numbers in the HUD
+   mono face tie it back to the camera's own readouts instead of reading
+   like a generic marketing grid. Also a flex child of the same section
+   (not its own <section>), so it needs the explicit width-100% that
+   `.landing-reveal section`'s centered flex would otherwise shrink away. */
 
 .landing-how {
-  padding-top: 0.5rem;
-  padding-bottom: 1rem;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding-top: 1rem;
 }
 
 .landing-how-heading {
@@ -543,7 +569,10 @@ body {
 }
 
 .landing-pitch {
-  margin: 0;
+  /* A little breathing room off the top of the reveal panel — right at
+     the section's own padding-top, the heading landed flush against the
+     rounded corner instead of reading as its own line. */
+  margin: 1.5rem 0 0;
   font-size: clamp(1.35rem, 4.5vw, 2.25rem);
   font-weight: 600;
   line-height: 1.3;
@@ -551,14 +580,20 @@ body {
   text-wrap: balance;
 }
 
+/* Resting state is the light outline; `.landing-cta-fill` sweeps in dark
+   from wherever the pointer landed, and the label flips color once it's
+   covered — see components/LandingCta.tsx for the origin tracking. */
 .landing-cta {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   padding: 1rem 2rem;
   border-radius: var(--radius-md);
-  background: #1c1c1d;
-  color: #f3f0ef;
+  border: 1.5px solid #1c1c1d;
+  background: transparent;
+  color: #1c1c1d;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -567,6 +602,26 @@ body {
 }
 .landing-cta:active {
   transform: scale(0.98);
+}
+
+.landing-cta-fill {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  background: #1c1c1d;
+  pointer-events: none;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-cta-label {
+  position: relative;
+  z-index: 1;
+  transition: color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-cta[data-filled="true"] .landing-cta-label {
+  color: #f3f0ef;
 }
 
 .landing-signin {
