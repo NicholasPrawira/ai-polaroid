@@ -20,6 +20,7 @@ import {
   persistPhoto,
   updateFolder,
   updatePhotoCaption,
+  updatePhotoLocation,
   uploadVoiceNote,
 } from "@/lib/supabase/photos";
 
@@ -102,6 +103,7 @@ export default function Home() {
         createdAt: Date.now(),
         folderId: null,
         caption: null,
+        location: null,
         // Never actually uploaded, so there's no object to point at — a
         // delete of this shot just clears local state (see handleDeletePhoto).
         storagePath: "",
@@ -229,6 +231,17 @@ export default function Home() {
     [supabase],
   );
 
+  const handleUpdateLocation = useCallback(
+    (shotId: string, location: string | null) => {
+      const patch = (s: Shot): Shot =>
+        s.id === shotId ? { ...s, location } : s;
+      setShots((prev) => prev.map(patch));
+      setCurrent((prev) => (prev && prev.id === shotId ? patch(prev) : prev));
+      updatePhotoLocation(supabase, shotId, location).catch(() => {});
+    },
+    [supabase],
+  );
+
   // Not optimistic like caption/folder edits — the caller needs the signed
   // playback URL back, and a failed upload should surface as an error in
   // the recorder UI rather than silently losing the recording.
@@ -300,6 +313,7 @@ export default function Home() {
             onFile={handleFile}
             onCreateFolder={handleCreateFolder}
             onUpdateCaption={handleUpdateCaption}
+            onUpdateLocation={handleUpdateLocation}
             onRecordVoice={handleRecordVoice}
             onDeleteVoice={handleDeleteVoice}
             onDelete={handleDeletePhoto}

@@ -119,6 +119,7 @@ export async function persistPhoto(
     createdAt: new Date(row.created_at).getTime(),
     folderId: row.folder_id,
     caption: row.caption,
+    location: row.location,
     storagePath: row.storage_path,
     thumbPath: row.thumb_path,
     // The local data URL is already decoded and costs nothing to reuse,
@@ -137,6 +138,24 @@ export async function updatePhotoCaption(
   const { error } = await supabase
     .from("photos")
     .update({ caption })
+    .eq("id", photoId);
+  if (error) throw error;
+}
+
+/**
+ * Writes the photo's place name. `null` clears it — the same shape as
+ * `updatePhotoCaption`, so both optional text fields behave identically.
+ * Length is bounded by the `photos_location_length` check constraint; the
+ * input caps it too, so a rejection here means something bypassed the UI.
+ */
+export async function updatePhotoLocation(
+  supabase: Client,
+  photoId: string,
+  location: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("photos")
+    .update({ location })
     .eq("id", photoId);
   if (error) throw error;
 }
@@ -325,6 +344,7 @@ export async function loadLibrary(
         createdAt: new Date(p.created_at).getTime(),
         folderId: p.folder_id,
         caption: p.caption,
+        location: p.location,
         storagePath: p.storage_path,
         thumbPath: p.thumb_path,
         // Photos saved before thumbnails existed fall back to the full

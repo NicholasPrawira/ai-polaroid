@@ -442,31 +442,48 @@ export function AsciiBackground({
       raf = requestAnimationFrame(render);
     }
 
-    // Settle on every scene, loaded or not. Waiting for all of them to succeed
-    // meant a single 404 left `ready` false for ever and the canvas blank —
-    // one missing file should cost one scene, not the whole effect.
+    // Paint as soon as the *first* scene decodes, not once all of them have.
+    // Waiting for the full set meant ~1.4MB had to arrive before `ready`
+    // flipped and `render()` stopped bailing out, so a cold visit showed a
+    // blank canvas and only looked right after a reload put the images in
+    // cache. Scenes that haven't arrived yet borrow one that has, exactly
+    // as failed ones do, so the indices always line up with the hero words.
     let settled = 0;
-    const failed: number[] = [];
-    const start = () => {
-      // Any scene that failed borrows the nearest one that didn't, so the
-      // indices still line up with the hero words.
+    const admit = () => {
       const fallback = images.find(Boolean);
-      if (!fallback) return; // nothing loaded at all
-      for (const i of failed) images[i] = fallback;
+      if (!fallback) return; // nothing decoded yet — wait for the next one
+      for (let i = 0; i < sources.length; i++) {
+        if (!images[i]) images[i] = fallback;
+      }
+      const first = !ready;
+      // Set before resize(), which returns early while `ready` is false.
       ready = true;
+      // Rebuild the luminance fields so the scenes that just arrived replace
+      // whichever stand-in they were showing.
       resize();
-      raf = requestAnimationFrame(render);
+      // Only the first admit starts the loop; later ones just re-fielded.
+      if (first) raf = requestAnimationFrame(render);
     };
     sources.forEach((scene, i) => {
       const img = new Image();
+      let fired = false;
       const done = (ok: boolean) => {
+        // The cached-image check below can race the event, and a double
+        // count would trip the `settled === sources.length` test early.
+        if (stopped || fired) return;
+        fired = true;
         if (ok) images[i] = img;
-        else failed.push(i);
-        if (++settled === sources.length) start();
+        settled++;
+        // Re-field on each arrival while stand-ins are still on screen; once
+        // every scene has settled, stop paying for the rebuild.
+        if (ok || settled === sources.length) admit();
       };
       img.onload = () => done(true);
       img.onerror = () => done(false);
       img.src = scene.src;
+      // A cached image can finish decoding before these handlers are wired
+      // up on some browsers; `complete` catches that case.
+      if (img.complete && img.naturalWidth > 0) done(true);
     });
 
     // A window listener never fires for an element that merely gains size —

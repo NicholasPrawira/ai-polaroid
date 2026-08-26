@@ -7,6 +7,10 @@ export type Shot = {
   folderId: string | null;
   /** A short note about the moment. `null` until the user adds one. */
   caption: string | null;
+  /** Human-readable place the photo was taken ("Bromo"), or `null`. Stored
+   *  as a name rather than coordinates — see the migration note on
+   *  `photos.location` for why the raw lat/lng is deliberately discarded. */
+  location: string | null;
   /** Path in the private `photos` storage bucket — needed to remove the
    *  object itself when the photo is deleted, not just its database row. */
   storagePath: string;
@@ -66,3 +70,30 @@ export function dayLabel(ts: number): string {
     year: d.getFullYear() === today.getFullYear() ? undefined : "numeric",
   });
 }
+
+/** Time of day for the stamp on the back of a print: "19:04". Locale-aware,
+ *  so a 12-hour locale gets "7:04 PM" without a second code path. */
+export function timeLabel(ts: number): string {
+  return new Date(ts).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** The full stamp: date then time, as a disposable camera prints it.
+ *  Always the explicit date here — unlike `dayLabel`, which says "Today"
+ *  because it heads a group of photos that the reader is scrolling. */
+export function stampLabel(ts: number): string {
+  const d = new Date(ts);
+  const date = d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  return `${date} · ${timeLabel(ts)}`;
+}
+
+/** Longest place name accepted, matching the `photos_location_length`
+ *  check constraint. The database is the real enforcement point; this is
+ *  here so the input can stop the user before a write fails. */
+export const LOCATION_MAX_LENGTH = 120;

@@ -15,7 +15,8 @@ import { UserButton } from "./UserButton";
 import { FolderPicker } from "./FolderPicker";
 import { FolderIcon } from "./Chrome";
 import { VoiceNote } from "./VoiceNote";
-import { Folder, Profile, Shot } from "@/lib/types";
+import { LocationField } from "./LocationField";
+import { Folder, Profile, Shot, stampLabel } from "@/lib/types";
 import { prepareDownload, saveBlob } from "@/lib/export";
 
 /** Keyed by `shot.id` at the call site — a fresh mount per shot is what
@@ -62,6 +63,7 @@ export function ResultScreen({
   onFile,
   onCreateFolder,
   onUpdateCaption,
+  onUpdateLocation,
   onRecordVoice,
   onDeleteVoice,
   onDelete,
@@ -81,6 +83,7 @@ export function ResultScreen({
   onFile: (shotId: string, folderId: string | null) => void;
   onCreateFolder: (name: string) => Promise<string>;
   onUpdateCaption: (shotId: string, caption: string | null) => void;
+  onUpdateLocation: (shotId: string, location: string | null) => void;
   onRecordVoice: (shotId: string, blob: Blob) => Promise<void>;
   onDeleteVoice: (shot: Shot) => Promise<void>;
   onDelete: (shot: Shot) => Promise<void>;
@@ -280,7 +283,7 @@ export function ResultScreen({
                 className="relative aspect-square w-full overflow-hidden rounded-lg bg-[var(--color-surface-container-high)]"
                 style={{ boxShadow: "var(--shadow-film-lifted)" }}
               >
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6">
+                <div className="flex h-full w-full flex-col items-center justify-between gap-2 p-6">
                   <div className="flex w-full items-center justify-between gap-2">
                     <p className="type-viewfinder-label text-[var(--color-on-surface-variant)] opacity-70">
                       Memory
@@ -291,19 +294,26 @@ export function ResultScreen({
                       onDelete={() => onDeleteVoice(shot)}
                     />
                   </div>
-                  <MemoryField shot={shot} onUpdateCaption={onUpdateCaption} />
-                </div>
+                  <div className="flex w-full flex-1 items-center">
+                    <MemoryField shot={shot} onUpdateCaption={onUpdateCaption} />
+                  </div>
 
-                {/* Stamped like the date print on a real disposable-camera
-                    back — mono type, tucked in the corner, not part of the
-                    editable note. */}
-                <p className="type-timestamp-sm absolute right-4 bottom-4 text-[var(--color-on-surface-variant)] opacity-50">
-                  {new Date(shot.createdAt).toLocaleDateString(undefined, {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </p>
+                  {/* Where and when, in the order a print stamps them.
+                      In normal flow rather than absolutely positioned: the
+                      location line can wrap, and an overlay would sit on top
+                      of the note instead of pushing it. */}
+                  <div className="w-full space-y-1.5">
+                    <LocationField
+                      shot={shot}
+                      onUpdateLocation={onUpdateLocation}
+                    />
+                    {/* Stamped like the date print on a real disposable-camera
+                        back — mono type, not part of the editable note. */}
+                    <p className="type-timestamp-sm text-left text-[var(--color-on-surface-variant)] opacity-50">
+                      {stampLabel(shot.createdAt)}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

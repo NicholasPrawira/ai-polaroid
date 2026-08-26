@@ -69,7 +69,11 @@ const csp = [
   // and fails *quietly*, because finalizeShot falls back to a local-only
   // shot, so the photo shows on screen and only vanishes on refresh.
   // Caught by exercising the real pipeline in a browser, not by reading.
-  `connect-src 'self' data: ${supabaseOrigin}`.trimEnd(),
+  //
+  // Nominatim (OpenStreetMap) turns GPS coordinates into a place name for
+  // the photo's location stamp. Keyless and origin-pinned; see
+  // lib/geolocate.ts for why it is called from the client at all.
+  `connect-src 'self' data: ${supabaseOrigin} https://nominatim.openstreetmap.org`.trimEnd(),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -92,11 +96,15 @@ const securityHeaders = [
   // Don't leak the full URL (which can carry a `next=` path or a signed
   // storage URL) to third-party origins.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // The app asks for the camera and microphone itself, so those stay
-  // self-enabled; everything else commonly abused is switched off.
+  // The app asks for the camera, microphone and location itself, so those
+  // stay self-enabled; everything else commonly abused is switched off.
+  // `geolocation=(self)` is required by the photo location stamp — it was
+  // `()` (blocked outright) until that feature existed, and leaving it that
+  // way makes the browser deny the request before the permission prompt
+  // ever appears, which looks exactly like a user declining.
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
+    value: "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()",
   },
   // Force HTTPS for two years including subdomains. Safe here because the
   // app is HTTPS-only in production; browsers ignore it over plain HTTP,

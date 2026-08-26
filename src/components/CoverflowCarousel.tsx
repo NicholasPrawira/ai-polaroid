@@ -472,9 +472,18 @@ export function CoverflowCarousel({
                       style={{ backfaceVisibility: "hidden" }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {/* Lazy on purpose. React emits a <head> preload for
+                          every eager <img> it renders, and this carousel sits
+                          two screens below the fold — those eight preloads
+                          were competing with the ASCII canvas's own scene
+                          fetches, which are what the user actually sees on
+                          arrival. Lazy suppresses the preload and defers the
+                          request until the carousel is near the viewport. */}
                       <img
                         src={slide.src}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         draggable={false}
                         className="h-full w-full select-none object-cover"
                       />

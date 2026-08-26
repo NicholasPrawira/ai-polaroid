@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { PhotoCard } from "./PhotoCard";
-import { Shot } from "@/lib/types";
+import { Shot, dayLabel, timeLabel } from "@/lib/types";
 
 const SWIPE_THRESHOLD = 24;
 const FLIP_MS = 300;
@@ -133,10 +133,24 @@ export function PhotoTile({
             transform: "rotateY(180deg)",
           }}
         >
-          <div className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-md bg-[var(--color-surface-container-high)]">
+          <div className="relative flex aspect-square w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-md bg-[var(--color-surface-container-high)] px-2 text-center">
             <span className="type-viewfinder-label text-[var(--color-on-surface-variant)]">
               {shot.caption ? "memory" : "add memory"}
             </span>
+            {/* When and where, small enough to stay secondary to the label.
+                `dayLabel` rather than the full date: the tile is read while
+                scrolling a roll, where "Today" is the useful form — the back
+                of the opened card is where the exact date belongs. */}
+            <span className="type-timestamp-sm text-[10px] leading-tight text-[var(--color-on-surface-variant)] opacity-60">
+              {dayLabel(shot.createdAt)} · {timeLabel(shot.createdAt)}
+            </span>
+            {shot.location && (
+              // One line only. A long place name would otherwise push the
+              // label off a tile that's only ~150px wide.
+              <span className="type-timestamp-sm w-full truncate text-[10px] leading-tight text-[var(--color-on-surface-variant)] opacity-60">
+                {shot.location}
+              </span>
+            )}
           </div>
         </div>
       </div>
