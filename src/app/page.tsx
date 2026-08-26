@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import { AsciiBackground } from "@/components/AsciiBackground";
 import { CoverflowCarousel } from "@/components/CoverflowCarousel";
@@ -134,6 +133,13 @@ const FAQ = [
 export default function Landing() {
   return (
     <div className="landing" style={{ ["--count" as string]: WORDS.length }}>
+      {/* The ASCII canvas can't paint until at least one scene has decoded,
+          and the first hero word points at this one. Preloading it lets the
+          effect start during HTML parse rather than after the client bundle
+          boots and AsciiBackground's effect fires. Next hoists this into
+          <head>. Only the first scene — the rest arrive progressively and
+          preloading all eight would just recreate the old bandwidth stall. */}
+      <link rel="preload" as="image" href={SCENES[0].src} fetchPriority="high" />
       <div className="landing-bg" aria-hidden="true">
         <AsciiBackground />
       </div>
@@ -167,10 +173,7 @@ export default function Landing() {
             <br />
             it becomes memory.
           </p>
-          <LandingCta href="/camera">Capture your memory</LandingCta>
-          <p className="landing-signin">
-            Already have an account? <Link href="/login">Sign in</Link>
-          </p>
+          <LandingCta href="/waitlist?from=landing">Capture your memory</LandingCta>
         </section>
 
         <section>

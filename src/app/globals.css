@@ -656,22 +656,6 @@ body {
   color: #f3f0ef;
 }
 
-.landing-signin {
-  margin: 0;
-  color: rgb(28 28 29 / 0.58);
-  font-size: 14px;
-}
-
-.landing-signin a {
-  color: #1c1c1d;
-  text-decoration: none;
-  border-bottom: 1px solid rgb(28 28 29 / 0.38);
-  padding-bottom: 1px;
-}
-.landing-signin a:hover {
-  border-bottom-color: #1c1c1d;
-}
-
 /* --- Footer: dark again, echoing the hero so the page closes the way it
    opened instead of trailing off on the bright panel. --- */
 
